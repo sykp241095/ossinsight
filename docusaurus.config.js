@@ -200,7 +200,7 @@ const config = {
       announcementBar: {
         id: 'announcement-20220623',
         content:
-        '💡 <a target="_blank" href="/blog/why-we-choose-tidb-to-support-ossinsight/" style="font-weight:bold">How we built a powerful insight tool in a week ?</a>',
+        '💡 <a target="_blank" href="/blog/why-we-choose-tidb-to-support-ossinsight/" style="font-weight:bold">我们如何用一周时间做出个开源仓库数据洞察工具？</a>',
         backgroundColor: '#6F6290',
         textColor: '#ffffff', 
         isCloseable: true,
@@ -351,7 +351,7 @@ const config = {
                 href: 'https://twitter.com/OSSInsight',
               },
               {
-                label: 'Email',
+                label: '邮件',
                 href: 'mailto:ossinsight@pingcap.com',
               },
               {

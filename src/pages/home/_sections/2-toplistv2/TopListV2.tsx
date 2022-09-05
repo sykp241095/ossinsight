@@ -60,8 +60,8 @@ const DataTable = ({ data, loading }: { data: ProcessedTopListData[], loading: b
       <Table className="clearTable">
         <TableHead>
           <TableRow>
-            <TableCell variant="head">Rank</TableCell>
-            <TableCell variant="head">Repository</TableCell>
+            <TableCell variant="head">排名</TableCell>
+            <TableCell variant="head">参股</TableCell>
             <TableCell variant="head">Stars</TableCell>
             <TableCell variant="head">Pushes</TableCell>
             <TableCell variant="head">Pull Requests</TableCell>

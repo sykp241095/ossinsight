@@ -69,15 +69,15 @@ export function Navigator({ value, type }: NavigatorProps) {
 }
 
 const tabs: { id: string, label: string, icon?: JSX.Element }[] = [
-  { id: 'divider-0', label: 'Analytics', icon: <AnalyticsIcon fontSize='inherit' sx={{ mr: 0.5 }} /> },
-  { id: 'overview', label: 'Overview' },
-  { id: 'behaviour', label: 'Behaviour' },
+  { id: 'divider-0', label: '综合分析', icon: <AnalyticsIcon fontSize='inherit' sx={{ mr: 0.5 }} /> },
+  { id: 'overview', label: '概览' },
+  { id: 'behaviour', label: '行为' },
   { id: 'star', label: 'Star' },
-  { id: 'code', label: 'Code' },
-  { id: 'code-review', label: 'Code Review' },
-  { id: 'issue', label: 'Issue' },
-  { id: 'divider-1', label: 'Monthly Stats', icon: <AutoGraphIcon fontSize='inherit' sx={{ mr: 0.5 }} /> },
-  { id: 'activities', label: 'Contribution Activities' },
+  { id: 'code', label: '代码' },
+  { id: 'code-review', label: '代码 Review' },
+  { id: 'issue', label: '问题反馈' },
+  { id: 'divider-1', label: '月度分析', icon: <AutoGraphIcon fontSize='inherit' sx={{ mr: 0.5 }} /> },
+  { id: 'activities', label: '贡献分布' },
 ];
 
 const matched = (n: number, i: number) => {

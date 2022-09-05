@@ -68,7 +68,7 @@ function NewCompareHeader({
         </Box>
 
         <SecondRepoSelector
-          placeholder='add another one'
+          placeholder='选择另一个仓库'
           defaultRepoName="recommend-repo-list-2-keyword"
           repo={repo2}
           onChange={onRepo2Change}

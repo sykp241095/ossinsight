@@ -66,8 +66,8 @@ const useTabs = () => {
   const tabs = useMemo(() => {
     return (
       <Tabs value={type} onChange={handleTypeChange}>
-        <Tab label="Developer" value="user" />
-        <Tab label="Repo" value="repo" />
+        <Tab label="开发者" value="user" />
+        <Tab label="代码仓库" value="repo" />
       </Tabs>
     );
   }, [type]);
@@ -197,11 +197,11 @@ const GeneralSearch = ({ contrast, align = 'left', size, global = false }: Gener
 
   const placeholder = useMemo(() => {
     if (!open) {
-      return `Search a developer or repo`
+      return `搜索开发者、代码仓库`
     } else if (type === 'user') {
-      return `Enter a Developer ID`
+      return `输入开发者名称`
     } else {
-      return `Enter a Repo ID`
+      return `输入代码仓库名称`
     }
   }, [open, type])
 

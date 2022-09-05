@@ -42,8 +42,8 @@ const Counts = ({ visible }: { visible: boolean }) => {
   return (
     <Stack direction="row" alignItems="center" divider={<Divider />}>
       <Stack direction="column">
-        <Span>Total</Span>
-        <Span>Events</Span>
+        <Span>GitHub</Span>
+        <Span>总事件数</Span>
       </Stack>
       <Numbers>
         <AnimatedNumber value={total ?? 0} hasComma duration={200} size={18} />
@@ -77,9 +77,9 @@ const Numbers = styled(Span)({
 
 const TooltipTitle = () => (
   <div>
-    ⌛️ GitHub events data importing in <b>Realtime</b>.
+    ⌛️ 实时导入 GitHub 事件
     <br/>
-    📊 Each bar = Data importing in per 5 seconds.
+    📊 每个柱子代表着每 5s 插入的 GitHub 事件数
   </div>
 )
 

@@ -36,10 +36,10 @@ export default function Workshop() {
       <Card>
         <Stack justifyContent="space-between" alignItems="start" minHeight={140}>
           <Typography variant="body1">
-            If you want a further talk about OSS Insight, please join an offline workshop and get help there.
+            如果想了解更多关于 OSS Insight 的内容，请加入我们的线下工作坊。
           </Typography>
           <Button variant="contained" color="primary" component={Link} href="https://share.hsforms.com/1E-qtGQWrTVmctP8kBT34gw2npzm" target='_link'>
-            🗓️ Join an offline workshop
+            🗓️ 加入线下实验室
           </Button>
         </Stack>
       </Card>
