@@ -225,7 +225,7 @@ const config = {
             position: 'left',
             items: [
               {label: '🗓️ 加入实验室!', to: '/workshop/overview'},
-              {label: '└─ 迷你版 OSS Insight', to: '/workshop/mini-ossinsight/introduction'},
+              {label: '└─ 迷你版 OSS Insight 🔥', to: '/workshop/mini-ossinsight/introduction'},
               {label: '└─ NFT Insight', to: '/workshop/nft-insight'},
               {label: '└─ Twitter Insight - not ready', to: '/workshop/twitter-insight'},
               {label: '└─ Stack Overflow Insight - not ready', to: '/workshop/stackoverflow-insight'},
@@ -259,7 +259,7 @@ const config = {
             position: 'right',
             alt: 'Twitter Logo (Header)',
           },
-          process.env.NODE_ENV == 'development' && {
+          process.env.DATABASE_URL && process.env.DATABASE_URL.indexOf('docker.internal') != -1 && {
             type: 'dropdown',
             label: '⚙️ ',
             position: 'right',
