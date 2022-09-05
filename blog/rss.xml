@@ -1,0 +1,440 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/">
+    <channel>
+        <title>OSS Insight Blog</title>
+        <link>https://ossinsight.io/blog</link>
+        <description>OSS Insight Blog</description>
+        <lastBuildDate>Mon, 01 Aug 2022 00:00:00 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>https://github.com/jpmonette/feed</generator>
+        <copyright>Copyright © 2022 PingCAP</copyright>
+        <item>
+            <title><![CDATA[GitHub Events Are Booming! Are Bots the Reason?]]></title>
+            <link>https://ossinsight.io/blog/github-data-is-booming</link>
+            <guid>/github-data-is-booming</guid>
+            <pubDate>Mon, 01 Aug 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[This post dives deeply into GitHub event trending, why GitHub events are surging, and whether GitHub's architecture can handle the increasing load.]]></description>
+        </item>
+        <item>
+            <title><![CDATA[Build a Better GitHub Insight Tool in a Week? A True Story]]></title>
+            <link>https://ossinsight.io/blog/why-we-choose-tidb-to-support-ossinsight</link>
+            <guid>/why-we-choose-tidb-to-support-ossinsight</guid>
+            <pubDate>Mon, 20 Jun 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[The story about how we build the ossinsight project, including how we deal with the historical and real-time huge data, the database solutions and so on.]]></description>
+        </item>
+        <item>
+            <title><![CDATA[Love, Code, and Robot — Explore robots in the world of code]]></title>
+            <link>https://ossinsight.io/blog/say-thanks-to-github-robots</link>
+            <guid>/say-thanks-to-github-robots</guid>
+            <pubDate>Thu, 12 May 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[This article describes the evolution of bots in the GitHub world, their behaviors and characteristics, and the impact they have brought to the open source world.]]></description>
+            <content:encoded><![CDATA[<p>When it comes to GitHub, we often see fake GitHub users who are always enthusiastic and active, giving timely feedback to project maintainers and contributors, and helping developers with tasks that can be automated. Yes, the next thing I want to discuss is something about GitHub bots.</p><h2>Overview</h2><p>In the <a href="https://ossinsight.io/">OSSInsight</a> project, we have developed a number of metrics to provide insight into open source projects. When developing some open source project metrics, we always consider excluding bot-generated actions or events from the metric calculation. </p><p>However, We can&#x27;t ignore the contribution of robots in the domain of open source, and it&#x27;s important to shift our thinking to look at what bots are doing on GitHub.</p><p>GitHub bots help developers do a lot of work:</p><ul><li>Issue triage and management. (For example: <code>stale[bot]</code>、<code>todo[bot]</code>)</li><li>Code review, security audit and quality inspection (For example, <code>snyk-bot</code>).</li><li>Format checking like ensuring license agreement signing, or make sure  commit messages semantic. (For example: <code>CLAassistant</code>)</li><li>Integration with third-party systems, including Jira, Slack, Jenkins and so on.</li><li>As an agent to help contributor perform some operations needed permission on the repository. (For example: <code>k8s-ci-bot</code>、<code>ti-chi-bot</code>)</li></ul><h2>History trends</h2><p>Looking at the historical data, we see that the number of GitHub bots grows significantly faster after 2019 (on average, 20,000 new bots are created each year)</p><div chart="dynamic-line" query="bot-total-history" xIndex="event_year" yIndex="bots_total"></div><p>I looked into what happened during the year and found that GitHub invested a lot in its software development infrastructure (including bots) during the year.</p><ul><li><p>In May 23, 2019, GitHub announced acquired Dependabot (Aka, <code>dependabot[bot]</code>).</p></li><li><p>In June 17th, 2019, <a href="https://github.blog/2019-06-17-github-acquires-pull-panda/">GitHub announced acquired Pull Panda</a>.</p></li><li><p>In September 18th, 2019, <a href="https://github.blog/2019-09-18-github-welcomes-semmle/">GitHub announced acquired Semmle</a> (Aka, the team builded <code>lgtm-com[bot]</code>).</p></li></ul><p>At this year, we, humans beings, were amazed to discover that bots could find problems, submit PRs, wait CI test code, complete merges and comment on PRs on their own without any human involvement. </p><p><a href="https://github.com/buildo/react-components/pull/1367"><img src="./bot_automatically_completes_a_pull_request.png" alt="Bot automatically completes a pull request"/></a></p><p>For now, rough statistics found that there are more than 95,620 bots on GitHub, the number doesn&#x27;t seem like so much, but wait...</p><details><summary>Click here to show computational process</summary><p>Before that, we had collected 4.7 billion github events stored in our database. Now we can count the number of bots on GitHub by executing a simple SQL statement:</p><pre><code class="language-sql">SELECT COUNT(DISTINCT actor_login) AS &#x27;Bots&#x27;
+FROM github_events ge
+WHERE actor_login REGEXP &#x27;^(bot-.+|.+bot|.+\\[bot\\]|.+-bot-.+|robot-.+|.+-ci-.+|.+-ci|.+-testing|.+clabot.+|.+-gerrit|k8s-.+|.+-machine|.+-automation|github-.+|.+-github|.+-service|.+-builds|codecov-.+|.+teamcity.+|jenkins-.+|.+-jira-.+)$&#x27;;
+</code></pre><p>In this SQL statement, we use a regular expression to determine which <code>actor_login</code> is the robot login. For example, the well known star robot <code>dependabot[bot]</code>, whose github login ends with <code>[bot]</code>, we can find more bots among a large number of events based on this method.</p><pre><code>+-------+
+| Bots  |
++-------+
+| 95620 |
++-------+
+1 row in set
+Time: 16.921s
+</code></pre></details><p><strong>👀 These 95 thousand bot accounts generated 603 million events, these events account for 12.82% of all public events on GitHub.</strong></p><details><summary>Click here to show computational process</summary><ol><li>Count the total number of public events triggered by GitHub bot</li></ol><pre><code class="language-sql">SELECT COUNT(*) AS &#x27;Bot&#x27;&#x27;s events&#x27;
+FROM github_events ge
+WHERE actor_login REGEXP &#x27;^(bot-.+|.+bot|.+\\[bot\\]|.+-bot-.+|robot-.+|.+-ci-.+|.+-ci|.+-testing|.+clabot.+|.+-gerrit|k8s-.+|.+-machine|.+-automation|github-.+|.+-github|.+-service|.+-builds|codecov-.+|.+teamcity.+|jenkins-.+|.+-jira-.+)$&#x27;;
+</code></pre><pre><code>+--------------+
+| Bot&#x27;s events |
++--------------+
+| 603554237    |
++--------------+
+1 row in set
+Time: 13.087s
+</code></pre><ol start="2"><li>Count the total number of all public events on GitHub</li></ol><pre><code class="language-sql">SELECT COUNT(*) AS &#x27;All public events&#x27; FROM github_events ge;
+</code></pre><pre><code>+-------------------+
+| All public events |
++-------------------+
+| 4705191048        |
++-------------------+
+1 row in set
+Time: 4.322s
+</code></pre><ol start="3"><li>Calculate the proportion of the former in the latter</li></ol><pre><code class="language-sql">SELECT CONCAT(TRUNCATE(603554237 / 4705191048 * 100, 2), &#x27;%&#x27;) AS &#x27;Proportion of Events&#x27;;
+</code></pre><pre><code>+----------------------+
+| Proportion of Events |
++----------------------+
+| 12.82%               |
++----------------------+
+1 row in set
+Time: 0.047s
+</code></pre></details><p>And these GitHub robots have served over 18 million open source repositories.</p><details><summary>Click here to show computational process</summary><pre><code class="language-sql">SELECT COUNT(DISTINCT repo_id) AS &#x27;Repositories&#x27;
+FROM github_events ge
+WHERE actor_login REGEXP &#x27;^(bot-.+|.+bot|.+\\[bot\\]|.+-bot-.+|robot-.+|.+-ci-.+|.+-ci|.+-testing|.+clabot.+|.+-gerrit|k8s-.+|.+-machine|.+-automation|github-.+|.+-github|.+-service|.+-builds|codecov-.+|.+teamcity.+|jenkins-.+|.+-jira-.+)$&#x27;;
+</code></pre><pre><code>+--------------+
+| Repositories |
++--------------+
+| 18415262     |
++--------------+
+1 row in set
+Time: 27.060s
+</code></pre></details><h2>Cases study</h2><h3>Dependabot<!-- -->[<!-- -->bot<!-- -->]</h3><p><code>dependabot[bot]</code> is a hard-working bot responsible for helping open source projects keep their dependencies up to date.</p><p>By analyzing depentenbot&#x27;s Push commit time, we found that he likes to start his busy week at 8:00 on Mondays (at GMT timezone).</p><div chart="heatmapchart" category="bot-dependabot-commits-time-distribution" xIndex="hour" yIndex="dayofweek" valueIndex="pushes"></div><p>It is commendable that, after a series of log4j security vulnerabilities came to light, it helped many Java-language repositories to update the dependency to a secure version timely.</p><h3>Stale Bots</h3><p>Stale Bot is a controversial class of robots, they are responsible for reminding maintainers to continue promoting long-term stale issue.</p><table><tr><th>Bad practice</th><th>Best practices</th></tr><tr><td><p>The user from Gatsby:</p><blockquote><p>I used to open GitHub issues to Gatsby to report bugs. Almost nothing was ever fixed and every few weeks I had to manually clickety-click to keep the issues alive because of the stale bot. Guess what I do now? I don&#x27;t report bugs to Gatsby, and I recommend against using Gatsby in newer projects.</p></blockquote></td><td><p>The user from NixOS:</p><blockquote><p>IMO NixOS has the right stalebot settings <sub><a href="https://github.com/NixOS/rfcs/pull/51">0</a></sub>. It was discussed thouroughly in the RFC, as to choose the right information text and other actions by the bot. For example, the bot will only mark the issue/PR as stale and will never close the issue or lock it. Issues are only ever closed by humans.
+The information text they came up with is quite a bit longer than the ansible one <sub><a href="https://github.com/NixOS/nixpkgs/pull/92254">1</a></sub>. I think this is a very important point when adding such a bot, otherwise the user will be left helpless.</p></blockquote><blockquote></blockquote><blockquote></blockquote></td></tr></table><p>To verify the above statement, we run the following query through the SQL statement:</p><pre><code class="language-sql">SELECT actor_login, COUNT(DISTINCT pr_or_issue_id) AS cnt
+FROM github_events ge
+WHERE
+    repo_name = &#x27;gatsbyjs/gatsby&#x27;
+    AND type = &#x27;IssuesEvent&#x27;
+    AND action = &#x27;closed&#x27;
+    AND (actor_login LIKE &#x27;%[bot]&#x27; OR actor_login LIKE &#x27;%bot&#x27;)
+GROUP BY actor_login
+ORDER BY cnt DESC;
+</code></pre><p>We know from the following query that many Issues in the <code>gatsbyjs/gatsby</code> repository have been closed by the stale bots.</p><pre><code>+---------------------+------+
+| actor_login         | cnt  |
++---------------------+------+
+| gatsbot[bot]        | 1389 |
+| github-actions[bot] | 777  |
+| gatsbybot           | 265  |
+| stale[bot]          | 50   |
+| renovate[bot]       | 1    |
++---------------------+------+
+5 rows in set
+Time: 0.100s
+</code></pre><p>I think it is necessary to distinguish between what should be done by robots and what must be done with human involvement.</p><h3>Weird bots</h3><p>There are some weird bots on GitHub that don&#x27;t help people work and learn on GitHub, but rather act as data movers.</p><div chart="barchart" category="bot-weird-bots-ranking" categoryIndex="actor_login" valueIndex="contributions" categoryType="owner" seriesName="Contributions"></div><ul><li><p>Some of them will use GitHub as a free place to archive their data, for example, <code>speedtracker-bot</code>, <code>newstools</code>.</p></li><li><p>Some of them will periodically upload a timestamp to the code repository as a commit, for example, <code>keihin00174</code>.</p></li><li><p>Some are even crazier and you can&#x27;t even access their profile pages because the number of events generated is so large that GitHub&#x27;s database can&#x27;t process them quickly, for example, <code>mhutchinson-witness</code>, <code>direwolf-github</code>.</p><p>  <img src="too_long_time_to_load_profile.png" alt="Too long time to load bot profile"/></p></li></ul><h2>Ranks</h2><p>We ranked the robots according to their contribution.</p><div chart="barchart" category="bot-contribution-ranking" categoryIndex="actor_login" valueIndex="contributions" categoryType="owner" seriesName="Contributions"></div><h2>Feature</h2><h2>Recommended reading</h2><ul><li><a href="https://blog.benwinding.com/github-stale-bots/">Github Stale Bots: A False Economy</a></li><li><a href="https://github.blog/2019-07-25-one-million-dependabot-pull-requests-merged/">One million Dependabot pull requests merged</a></li><li><a href="https://github.blog/changelog/2022-03-23-pull-panda-is-shutting-down/">Pull Panda is shutting down</a></li><li><a href="https://livablesoftware.com/best-bots-software-development/">Best bots to improve your software development process</a></li></ul>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Deep Insights into JavaScript Frameworks]]></title>
+            <link>https://ossinsight.io/blog/deep-insight-into-js-framework-2021</link>
+            <guid>/deep-insight-into-js-framework-2021</guid>
+            <pubDate>Tue, 03 May 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[In this chapter, we will share with you some of the top JavaScript Framework repos(JSF repos) on GitHub in 2021 measured by different metrics including the number of stars, PRs, contributors, countries, regions and so on.]]></description>
+            <content:encoded><![CDATA[<p>In this chapter, we will share with you some of <strong>the top JavaScript Framework repos(JSF repos) on GitHub in 2021</strong> measured by different metrics including the number of stars, PRs, contributors, countries, regions and so on. </p><p>Note: </p><ol><li>You can move your cursor onto any of the repository bars/lines on the chart and get the exact number. </li><li>The SQL commands above each chart are what we use on our TiDB Cloud to get the analytical results. Try those SQL commands by yourselves on TiDB Cloud with this <a href="/blog/try-it-yourself/">10-minute tutorial</a>.</li></ol><h2>Star history of top JavaScript Framework repos since 2011</h2><p>The number of stars is often thought of as a measure of whether a github repository is popular or not. We sort all JavaScript framework repositories from github by the total number of historical stars since 2011. For visualizing the results more intuitively, we show the top 10 open source databases by using an interactive line chart. </p><div chart="dynamic-stars" category="archive-2021-top10-star-racing" repo="js_framework_repos"></div><h2>Top 10 most starred JSF repos in 2021</h2><div chart="barchart" category="archive-2021-top10-by-stars" n="10" categoryIndex="repo_name" valueIndex="stars" seriesName="Stars" repo="js_framework_repos"></div><h2>Top 10 JSF repos with the most PRs in 2021</h2><div chart="barchart" category="archive-2021-top10-by-prs" n="20" categoryIndex="repo_name" valueIndex="num" seriesName="PRs" repo="js_framework_repos"></div><h2>Which javascript framework have the widest feedback sources?</h2><p>The chart below displays the number of issue creators of leading javascript framework each year and their growth trend during the past ten years.</p><div chart="barchart" category="rt-jsf-ranking-by-issue-creators" n="20" categoryIndex="repo_name" valueIndex="num" seriesName="Issue Creators"></div><h2>Top 20 developers contributing the most PRs to JSF repos in 2021</h2><div chart="barchart" category="archive-2021-top20-by-developers" categoryIndex="actor_login" valueIndex="pr_count" categoryType="owner" seriesName="PRs" repo="js_framework_repos"></div><h2>Top 10 JSF repos with the highest YoY growth rate of stars in 2021</h2><div chart="yoychart" category="archive-2021-top20-by-stars-yoy" repo="js_framework_repos"></div><h2>Top 10 JSF repos with the lowest YoY growth rate of stars in 2021</h2><div chart="yoychart" category="archive-2021-bottom10-by-yoy" repo="js_framework_repos"></div><h2>Top 10 most used programming languages in JSF repos in 2021</h2><div chart="barchart" category="archive-2021-top5-by-languages" categoryIndex="language" valueIndex="COUNT(*)" categoryType="lang" seriesName="PRs" repo="js_framework_repos"></div><h2>Top 20 companies contributing the most to JSF repos in 2021</h2><div chart="barchart" category="archive-2021-top20-by-companies" categoryIndex="company" valueIndex="users_count" seriesName="Contributors" repo="js_framework_repos"></div><h2>Top 10 countries/regions contributing the most to JSF repos in 2021</h2><div chart="worldmapchart" category="archive-2021-top10-by-regions" categoryIndex="country_code" valueIndex="users_count" seriesName="Contributors" repo="js_framework_repos"></div><h2>The Rankings of JSF repos measured by Z-score in 2021</h2><p>The analytical results displayed above are generated based on just one single metric of these three: stars, PRs, or contributors. Now, we will use the <a href="https://en.wikipedia.org/wiki/Standard_score">Z-score</a> method to rank the JSF repos on GitHub.</p><p>This is the comprehensive ranking calculated by z-score:</p><div chart="zscorechart" category="archive-2021-archive-ranking" repo="js_framework_repos"></div>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Deep Insights into Low-code Development Tools]]></title>
+            <link>https://ossinsight.io/blog/deep-insight-into-lowcode-development-tools-2021</link>
+            <guid>/deep-insight-into-lowcode-development-tools-2021</guid>
+            <pubDate>Tue, 03 May 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[In this chapter, we will share with you some of the top low-code development tools repos (LCDT repos) on GitHub in 2021 measured by different metrics including the number of stars, PRs, contributors, countries, regions and so on.]]></description>
+            <content:encoded><![CDATA[<p>In this chapter, we will share with you some of the <strong>top low-code development tools repos (LCDT repos)</strong> on GitHub in 2021 measured by different metrics including the number of stars, PRs, contributors, countries, regions and so on. </p><p>Note: </p><ol><li>You can move your cursor onto any of the repository bars/lines on the chart and get the exact number. </li><li>The SQL commands above each chart are what we use on our TiDB Cloud to get the analytical results. Try those SQL commands by yourselves on TiDB Cloud with this <a href="/blog/try-it-yourself/">10-minute tutorial</a>.</li></ol><h2>Star history of top LCDT repos since 2011</h2><div chart="dynamic-stars" category="archive-2021-top10-star-racing" repo="nocode_repos"></div><h2>Top 10 most starred LCDT repos in 2021</h2><div chart="barchart" category="archive-2021-top10-by-stars" n="10" categoryIndex="repo_name" valueIndex="stars" seriesName="Stars" repo="nocode_repos"></div><h2>Top 10 LCDT repos with the most PRs in 2021</h2><div chart="barchart" category="archive-2021-top10-by-prs" n="20" categoryIndex="repo_name" valueIndex="num" seriesName="PRs" repo="nocode_repos"></div><h2>Top 20 developers contributing the most PRs to LCDT repos in 2021</h2><div chart="barchart" category="archive-2021-top20-by-developers" categoryIndex="actor_login" valueIndex="pr_count" categoryType="owner" seriesName="PRs" repo="nocode_repos"></div><h2>Top 10 LCDT repos with the highest YoY growth rate in 2021</h2><div chart="yoychart" category="archive-2021-top20-by-stars-yoy" repo="nocode_repos"></div><h2>Top 10 LCDT repos with the lowest YoY growth rate in 2021</h2><div chart="yoychart" category="archive-2021-bottom10-by-yoy" repo="nocode_repos"></div><h2>Top 7 most used programming languages in LCDT repos in 2021</h2><div chart="barchart" category="archive-2021-top5-by-languages" categoryIndex="language" valueIndex="COUNT(*)" categoryType="lang" seriesName="PRs" repo="nocode_repos"></div><h2>Top 20 companies contributing the most to LCDT repos in 2021</h2><div chart="barchart" category="archive-2021-top20-by-companies" categoryIndex="company" valueIndex="users_count" seriesName="Contributors" repo="nocode_repos"></div><h2>Top 20 countries/regions contributing the most to LCDT repos in 2021</h2><div chart="worldmapchart" category="archive-2021-top10-by-regions" categoryIndex="country_code" valueIndex="users_count" seriesName="Contributors" repo="nocode_repos"></div><h2>The rankings of LCDT repos measured by Z-score in 2021</h2><p>The analytical results displayed above are generated based on just one single metric of these three: stars, PRs, or contributors. Now, we will use the <a href="https://en.wikipedia.org/wiki/Standard_score">Z-score</a> method to rank the LCDT repos on GitHub. </p><p>This is the comprehensive ranking calculated by z-score:</p><div chart="zscorechart" category="archive-2021-archive-ranking" repo="nocode_repos"></div>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Deep Insight Into Open Source Databases]]></title>
+            <link>https://ossinsight.io/blog/deep-insight-into-open-source-databases</link>
+            <guid>/deep-insight-into-open-source-databases</guid>
+            <pubDate>Tue, 03 May 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[On this page, we will share with you many deep insights into open source databases, such as the database popularity, database contributors, coding vitality, community feedback and so on.]]></description>
+        </item>
+        <item>
+            <title><![CDATA[Deep Insights into Programming Languages]]></title>
+            <link>https://ossinsight.io/blog/deep-insight-into-programming-languages-2021</link>
+            <guid>/deep-insight-into-programming-languages-2021</guid>
+            <pubDate>Tue, 03 May 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[In this chapter, we will share with you some of the top programming language repos (PL repos) on GitHub in 2021 measured by different metrics including the number of stars, PRs, contributors, countries, regions and so on.]]></description>
+            <content:encoded><![CDATA[<p>In this chapter, we will share with you some of <strong>the top programming language repos (PL repos) on GitHub in 2021</strong> measured by different metrics including the number of stars, PRs, contributors, countries, regions and so on. </p><p>Note: </p><ol><li>You can move your cursor onto any of the repository bars/lines on the chart and get the exact number. </li><li>The SQL commands above each chart are what we use on TiDB Cloud to get the analytical results. Try those SQL commands by yourselves on TiDB Cloud with this <a href="/blog/try-it-yourself/">10-minute tutorial</a>.</li></ol><h2>Star history of top PL repos since 2011</h2><div chart="dynamic-stars" category="archive-2021-top10-star-racing" repo="programming_language_repos"></div><h2>Top 10 most starred PL repos in 2021</h2><div chart="barchart" category="archive-2021-top10-by-stars" n="10" categoryIndex="repo_name" valueIndex="stars" seriesName="Stars" repo="programming_language_repos"></div><h2>Top 10 PL repos with the most PRs in 2021</h2><div chart="barchart" category="archive-2021-top10-by-prs" n="20" categoryIndex="repo_name" valueIndex="num" seriesName="PRs" repo="programming_language_repos"></div><h2>Top 20 developers contributed the most PRs to PL repos in 2021</h2><div chart="barchart" category="archive-2021-top20-by-developers" categoryIndex="actor_login" valueIndex="pr_count" categoryType="owner" seriesName="PRs" repo="programming_language_repos"></div><h2>Top 9 PL repos with the highest YoY growth rate of stars in 2021</h2><div chart="yoychart" category="archive-2021-top20-by-stars-yoy" repo="programming_language_repos"></div><h2>Top 10 PL repos with the lowest YoY growth rate of stars in 2021</h2><div chart="yoychart" category="archive-2021-bottom10-by-yoy" repo="programming_language_repos"></div><h2>Top 20 companies contributing the most to PL repos in 2021</h2><div chart="barchart" category="archive-2021-top20-by-companies" categoryIndex="company" valueIndex="users_count" seriesName="Contributors" repo="programming_language_repos"></div><h2>Top countries or regions contributing to OSS programming languages</h2><div chart="worldmapchart" category="archive-2021-top10-by-regions" categoryIndex="country_code" valueIndex="users_count" seriesName="Contributors" repo="programming_language_repos"></div><h2>The rankings of PL repos measured by Z-score in 2021</h2><p>The analytical results displayed above are generated based on just one single metric of these three: stars, PRs, or contributors. Now, we will use the <a href="https://en.wikipedia.org/wiki/Standard_score">Z-score</a> method to rank PL repos on GitHub.</p><p>This is the comprehensive ranking calculated by z-score:</p><div chart="zscorechart" category="archive-2021-archive-ranking" repo="programming_language_repos"></div>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Deep Insights into Web Frameworks]]></title>
+            <link>https://ossinsight.io/blog/deep-insight-into-web-framework-2021</link>
+            <guid>/deep-insight-into-web-framework-2021</guid>
+            <pubDate>Tue, 03 May 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[In this chapter, we will share with you some of the top Web Framework repos (WF repos) on GitHub in 2021 measured by different metrics including the number of stars, PRs, contributors, countries, regions and so on.]]></description>
+            <content:encoded><![CDATA[<p>In this chapter, we will share with you some of the <strong>top Web Framework repos (WF repos) on GitHub in 2021</strong> measured by different metrics including the number of stars, PRs, contributors, countries, regions and so on. </p><p>Note: </p><ol><li>You can move your cursor onto any of the repository bars/lines on the chart and get the exact number. </li><li>The SQL commands above each chart are what we use on our TiDB Cloud to get the analytical results. Try those SQL commands by yourselves on TiDB Cloud with <a href="/blog/try-it-yourself/">this 10-minute tutorial</a>.</li></ol><h2>Star history of top Web Framework repos since 2011</h2><p>The number of stars is often thought of as a measure of whether a github repository is popular or not. We sort all web framework repositories from github by the total number of historical stars since 2011. For visualizing the results more intuitively, we show the top 10 open source databases by using an interactive line chart. </p><div chart="dynamic-stars" category="archive-2021-top10-star-racing" repo="web_framework_repos"></div><h2>Top 10 most starred Web Framework repos in 2021</h2><div chart="barchart" category="archive-2021-top10-by-stars" n="10" categoryIndex="repo_name" valueIndex="stars" seriesName="Stars" repo="web_framework_repos"></div><h2>Top 10 Web Framework repos with the most PRs in 2021</h2><div chart="barchart" category="archive-2021-top10-by-prs" n="20" categoryIndex="repo_name" valueIndex="num" seriesName="PRs" repo="web_framework_repos"></div><h2>Top 20 developers contributed the most PRs to Web Framework repos in 2021</h2><div chart="barchart" category="archive-2021-top20-by-developers" categoryIndex="actor_login" valueIndex="pr_count" categoryType="owner" seriesName="PRs" repo="web_framework_repos"></div><h2>Top 20 Web Framework repos with the highest YoY growth rate of stars in 2021</h2><div chart="yoychart" category="archive-2021-top20-by-stars-yoy" repo="web_framework_repos"></div><h2>Top 10 Web Framework repos with the lowest YoY growth rate of stars in 2021</h2><div chart="yoychart" category="archive-2021-bottom10-by-yoy" repo="web_framework_repos"></div><h2>Top 10 most used programming languages in Web Framework repos in 2021</h2><div chart="barchart" category="archive-2021-top5-by-languages" categoryIndex="language" valueIndex="COUNT(*)" categoryType="lang" seriesName="PRs" repo="web_framework_repos"></div><h2>Top 20 companies contributing the most to Web Framework repos in 2021</h2><div chart="barchart" category="archive-2021-top20-by-companies" categoryIndex="company" valueIndex="users_count" seriesName="Contributors" repo="web_framework_repos"></div><h2>Top 10 countries/regions contributing the most to Web Framework repos in 2021</h2><div chart="worldmapchart" category="archive-2021-top10-by-regions" categoryIndex="country_code" valueIndex="users_count" seriesName="Contributors" repo="web_framework_repos"></div><h2>The Rankings of Web Framework repos measured by Z-score in 2021</h2><p>The analytical results displayed above are generated based on just one single metric of these three: stars, PRs, or contributors. Now, we will use the <a href="https://en.wikipedia.org/wiki/Standard_score">Z-score</a> method to rank the WF repos on GitHub.  </p><p>This is the comprehensive ranking calculated by z-score:</p><div chart="zscorechart" category="archive-2021-archive-ranking" repo="web_framework_repos"></div>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Explore Deep in 4.6 Billion GitHub Events]]></title>
+            <link>https://ossinsight.io/blog/explore-deep-in-4.6-billion-github-events</link>
+            <guid>/explore-deep-in-4.6-billion-github-events</guid>
+            <pubDate>Tue, 03 May 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[Here you can find the answer of what does a view of 4.6 billion Github events really look like and what secrets and values can be discovered in such an enormous amount of data.]]></description>
+            <content:encoded><![CDATA[<p>4.6 billion is literally an astronomical figure. The richest star map of our galaxy, brought by Gaia space observatory, includes just under 2 billion stars. What does a view of 4.6 billion GitHub events really look like? What secrets and values can be discovered in such an enormous amount of data? </p><p>Here you go: <a href="https://ossinsight.io/">OSSInsight.io</a><strong> can help you find the answer</strong>. It’s a useful insight tool that can give you the most updated open source intelligence, and help you deeply understand any single GitHub project or quickly compare any two projects by digging deep into 4.6 billion GitHub events in real time. Here are some ways you can play with it.</p><h2>Compare any two GitHub projects</h2><p>Do you wonder how different projects have performed and developed over time? Which project is worthy of more attention? <strong><a href="https://ossinsight.io/">OSSInsight.io</a></strong> can answer your questions via the <a href="https://ossinsight.io/analyze/pingcap/tidb">Compare Projects</a> page.</p><p>Let’s take the <a href="https://github.com/kubernetes/kubernetes">Kubernetes repository</a>  (K8s) and Docker’s <a href="https://github.com/moby/moby">Moby repository</a> as examples and compare them in terms of popularity and coding vitality. </p><h3><strong>Popularity</strong></h3><p>To compare the popularity of two repositories, we use multiple metrics including the number of stars, the growth trend of stars over time, and stargazers’ geographic and employment distribution. </p><h4><strong>Number of stars</strong></h4><p>The line chart below shows the accumulated number of stars of K8s and Moby each year. According to the chart, Moby was ahead of K8s until late 2019. The star growth of Moby slowed after 2017 while K8s has kept a steady growth pace. </p><p><img src="./the-star-history.png"/></p><center><em>The star history of K8s and Moby</em></center><h4><strong>Geographical distribution of stargazers</strong></h4><p>The map below shows the stargazers’ geographical distribution of Moby and K8s. As you can see, their stargazers are scattered around the world with the majority coming from the US, Europe, and China.</p><p><img src="./geographicla-distribution-of-stargazers.png"/></p><center><em>The geographical distribution of K8s and Moby stargazers</em></center><h4><strong>Employment distribution of stargazers</strong></h4><p>The chart below shows the stargazers’ employment of K8s (red) and Moby (dark blue). Both of their stargazers work in a wide range of industries, and most come from leading dotcom companies such as Google, Tencent, and Microsoft. The difference is that the top two companies of K8s’ stargazers are  Google and Microsoft from the US, while Moby’s top two followers are Tencent and Alibaba from China.  </p><p><img src="./employment-distribution-of-stargazers.png"/></p><center><em>The employment distribution of K8s and Moby stargazers</em></center><h3><strong>Coding vitality</strong></h3><p>To compare the coding vitality of two GitHub projects, we use many metrics including the growth trend of pull requests (PRs), the monthly number of PRs, commits and pushes, and the heat map of developers’ contribution time.  </p><h4><strong>Number of commits and pushes</strong></h4><p>The bar chart below shows the number of commits and pushes submitted to K8s (top) and Moby (bottom) each month after their inception. Generally speaking, K8s has more pushes and commits than Moby, and their number grew stably until 2020 followed by a slowdown afterwards. Moby’s monthly pushes and commits had a minor growth between 2015 and 2017, and then barely increased after 2018.</p><p><img src="./monthly-pushes-and-commits.png"/></p><center><em>The monthly pushes and commits of K8s (top) and Moby (bottom)</em></center><h4><strong>Number of PRs</strong></h4><p>The charts below show the monthly and accumulated number of PRs of the two repositories. As you can see, K8s has received stable and consistent PR contributions ever since its inception and its accumulated number of PRs has also grown steadily. Moby had vibrant PR submissions before late 2017, but started to drop afterwards. Its accumulated number of PRs reached a plateau in 2017, which has remained the case ever since. </p><p><img src="./monthly-and-accumulated-pr-number.png"/></p><center><em>The monthly and accumulated PR number of K8s (top) and Moby (bottom)</em></center><h4><strong>Developers’ contribution time</strong></h4><p>The following heat map shows developers’ contribution time for K8s (left) and Moby (right). Each square represents one hour in a day. The darker the color, the more contributions occur during that time. K8s has many more dark parts than Moby, and K8s’ contributions occur almost 24 hours a day, 7 days a week. K8s definitely has more dynamic coding activities than Moby. </p><p><img src="./heat-map.png"/></p><center><em>Heat map of developers’ contribution time of K8s (left) and Moby (right)</em></center><br/><p><strong>Taken together</strong>, these metrics show that while both K8s and Moby are popular across industries world-wide, K8s has more vibrant coding activities than Moby. K8s is continuously gaining popularity and coding vitality while Moby is falling in both over time.</p><p>Popularity and coding vitality are just two dimensions to compare repositories. If you want to discover more insights or compare other projects you are interested in, feel free to visit the <a href="https://ossinsight.io/analyze/pingcap/tidb">Compare</a> page and explore it for yourself.  </p><p>Of course, you can use this same page to <strong>deeply explore any single GitHub project</strong> and gain the most up-to-date insights about them. The key metrics and the corresponding changes are presented in a panoramic view. More in-depth analytics such as code changes by PR size groups and PR lines are also available. Explore it for yourself and you’d be surprised. Have fun. </p><p><img src="./panoramic-view-of-key-github-metrics.png"/></p><center><em>Panoramic view of key GitHub metrics (K8s as an example)</em></center><br/><p><img src="./total-pr-number-each-month-and-pr-groups.png"/></p><center><em>  Total PR number each month/PR groups (K8s as an example)</em></center><br/><p><img src="./number-of-lines-of-code-change-each-month.png"/></p><center><em>The number of lines of code change each month (K8s as an example)</em></center><h2>Key open source insights</h2><p><a href="https://ossinsight.io/">OSSInsight.io</a> does more than explore or compare repositories. <strong>It gives you <a href="https://ossinsight.io/database/deep-insight-into-open-source-databases">historical, real-time, and custom open source insights</a>.</strong> In this section, we’ll share some key insights in open source databases and programming languages. If you want to gain insights in other areas, you can explore the <a href="https://ossinsight.io/database/deep-insight-into-open-source-databases/">Insights</a>  page for yourself. </p><p><strong>Note</strong>: If you want to get those analytical results by yourself, you can execute the SQL commands above each chart on TiDB Cloud with ease following this <a href="https://ossinsight.io/blog/try-it-yourself/">10-minute tutorial</a>. </p><h3><strong>Rust: the most active programming language</strong></h3><p>Rust was first released in 2012 and has been among the leading programming languages for 10 years. It has the most active repository with a total of 103,047 PRs at the time of writing. </p><details><summary>Click here to show SQL commands</summary><p><pre><code class="language-sql">SELECT
+    programming_language_repos.name AS repo_name,
+    COUNT(*)      AS num
+FROM github_events
+         JOIN programming_language_repos ON programming_language_repos.id = github_events.repo_id
+WHERE type = &#x27;PullRequestEvent&#x27;
+  AND action = &#x27;opened&#x27;
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 10
+</code></pre></p></details><p><img src="./pr-number-of-pl-repos.png"/></p><center><em>PR numbers of the leading programming languages</em></center><h3><strong>Go: the new favorite and the fastest growing programming language</strong></h3><p>According to <strong><a href="https://ossinsight.io/">OSSInsight.io</a></strong>, 10 programming languages dominate the open source community. Go is the most popular with 108,317 stars, followed by Node and TypeScript. Go is also the fastest growing language in popularity.</p><details><summary>Click here to show SQL commands</summary><p><pre><code class="language-sql">WITH repo_stars AS (
+    SELECT
+        repo_id,
+        ANY_VALUE(repos.name) AS repo_name,
+        COUNT(distinct actor_login) AS stars
+    FROM github_events
+         JOIN programming_language_repos repos ON repos.id = github_events.repo_id
+    WHERE type = &#x27;WatchEvent&#x27;
+    GROUP BY 1
+), top_10_repos AS (
+    SELECT
+        repo_id, repo_name, stars
+    FROM repo_stars rs
+    ORDER BY stars DESC
+    LIMIT 10
+), tmp AS (
+    SELECT
+        event_year,
+        tr.repo_name AS repo_name,
+        COUNT(*) AS year_stars
+    FROM github_events
+         JOIN top_10_repos tr ON tr.repo_id = github_events.repo_id
+    WHERE type = &#x27;WatchEvent&#x27; AND event_year &lt;= 2021
+    GROUP BY 2, 1
+    ORDER BY 1 ASC, 2
+), tmp1 AS (
+    SELECT
+        event_year,
+        repo_name,
+        SUM(year_stars) OVER(partition by repo_name order by event_year ASC) as stars
+    FROM tmp
+    ORDER BY event_year ASC, repo_name
+)
+SELECT event_year, repo_name, stars FROM tmp1
+</code></pre></p></details><p><img src="./star-growth-trends-of-leading-programming-languages.png"/></p><center><em>The star growth trends of leading programming languages</em></center><h3><strong>Microsoft and Google: the top two programing languages contributors</strong></h3><p>As world-renowned high-tech companies, Microsoft and Google take the lead in open source language contributions with a total of 1,443 and 947 contributors respectively at the time of writing. </p><details><summary>Click here to show SQL commands</summary><p><pre><code class="language-sql">SELECT
+    TRIM(LOWER(REPLACE(u.company, &#x27;@&#x27;, &#x27;&#x27;))) AS company,
+    COUNT(DISTINCT actor_id)                 AS num
+FROM
+    github_events github_events
+    JOIN programming_language_repos db ON db.id = github_events.repo_id
+    JOIN users u ON u.login = github_events.actor_login
+WHERE
+    github_events.type IN (
+        &#x27;IssuesEvent&#x27;, &#x27;PullRequestEvent&#x27;,&#x27;IssueCommentEvent&#x27;,
+        &#x27;PullRequestReviewCommentEvent&#x27;, &#x27;CommitCommentEvent&#x27;,
+        &#x27;PullRequestReviewEvent&#x27;
+    )
+    AND u.company IS NOT NULL
+    AND u.company != &#x27;&#x27;
+    AND u.company != &#x27;none&#x27;
+GROUP BY 1
+ORDER BY 2 DESC
+LIMIT 20;
+</code></pre></p></details><p><img src="./companies-who-contribute-the-most-to-programing-languages.png"/></p><center><em>Companies who contribute the most to programing languages</em></center><h3><strong>Elasticsearch draws the most attention</strong></h3><p>Elasticsearch was one of the first open source databases. It is the most liked database with 64,554 stars, followed by Redis and Prometheus. From 2011 to 2016, Elasticseasrch and Redis shared the top spot until Elasticsearch broke away in 2017.</p><details><summary>Click here to show SQL commands</summary><p><pre><code class="language-sql">WITH repo_stars AS (
+    SELECT
+        repo_id,
+        ANY_VALUE(repos.name) AS repo_name,
+        COUNT(distinct actor_login) AS stars
+    FROM github_events
+         JOIN db_repos repos ON repos.id = github_events.repo_id
+    WHERE type = &#x27;WatchEvent&#x27;
+    GROUP BY 1
+), top_10_repos AS (
+    SELECT
+        repo_id, repo_name, stars
+    FROM repo_stars rs
+    ORDER BY stars DESC
+    LIMIT 10
+), tmp AS (
+    SELECT
+        event_year,
+        tr.repo_name AS repo_name,
+        COUNT(*) AS year_stars
+    FROM github_events
+         JOIN top_10_repos tr ON tr.repo_id = github_events.repo_id
+    WHERE type = &#x27;WatchEvent&#x27; AND event_year &lt;= 2021
+    GROUP BY 2, 1
+    ORDER BY 1 ASC, 2
+), tmp1 AS (
+    SELECT
+        event_year,
+        repo_name,
+        SUM(year_stars) OVER(partition by repo_name order by event_year ASC) as stars
+    FROM tmp
+    ORDER BY event_year ASC, repo_name
+)
+SELECT event_year, repo_name, stars FROM tmp1
+</code></pre></p></details><p><img src="./star-growth-trend-of-leading-databases.png"/></p><center><em>The star growth trend of leading databases</em></center><h3><strong>China: the number one fan of open source databases</strong></h3><p>China has the most open source database followers with 11,171 stargazers of database repositories, followed by the US and Europe. </p><details><summary>Click here to show SQL commands</summary><p><pre><code class="language-sql">select upper(u.country_code) as country_or_area, count(*) as count, count(*) / max(s.total) as percentage
+from github_events
+use index(index_github_events_on_repo_id)
+left join users u ON github_events.actor_login = u.login
+join (
+    -- Get the number of people has the country code.
+    select count(*) as total
+    from github_events
+    use index(index_github_events_on_repo_id)
+    left join users u ON github_events.actor_login = u.login
+    where repo_id in (507775, 60246359, 17165658, 41986369, 16563587, 6838921, 108110, 166515022, 48833910, 156018, 50229487, 20089857, 5349565, 6934395, 6358188, 11008207, 19961085, 206444, 30753733, 105944401, 31006158, 99919302, 50874442, 84240850, 28738447, 44781140, 372536760, 13124802, 146459443, 28449431, 23418517, 206417, 9342529, 19257422, 196353673, 172104891, 402945349, 11225014, 2649214, 41349039, 114187903, 20587599, 19816070, 69400326, 927442, 24494032) and github_events.type = &#x27;WatchEvent&#x27; and u.country_code is not null
+) s
+where repo_id in (507775, 60246359, 17165658, 41986369, 16563587, 6838921, 108110, 166515022, 48833910, 156018, 50229487, 20089857, 5349565, 6934395, 6358188, 11008207, 19961085, 206444, 30753733, 105944401, 31006158, 99919302, 50874442, 84240850, 28738447, 44781140, 372536760, 13124802, 146459443, 28449431, 23418517, 206417, 9342529, 19257422, 196353673, 172104891, 402945349, 11225014, 2649214, 41349039, 114187903, 20587599, 19816070, 69400326, 927442, 24494032) and github_events.type = &#x27;WatchEvent&#x27; and u.country_code is not null
+group by 1
+order by 2 desc;
+</code></pre></p></details><p><img src="./geographical-distribution-database-stargazers.png"/></p><center><em>The geographical distribution of open source database stargazers</em></center><p><strong><a href="https://ossinsight.io/">OSSInsight.io</a></strong> also allows you to create your own custom insights into any GitHub repository created after 2011. You’re welcome to visit the <a href="https://ossinsight.io/database/deep-insight-into-open-source-databases">Insights page</a> to explore more. </p><h2>Run your own analytics with TiDB Cloud</h2><p>All the analytics on <strong><a href="https://ossinsight.io/">OSSInsight.io</a></strong> are powered by <a href="https://en.pingcap.com/tidb-cloud/">TiDB Cloud</a>, a fully-managed database as a service. If you want to run your own analytics and get your own insights, <a href="https://tidbcloud.com/free-trial?utm_source=ossinsight&amp;utm_medium=referral">sign up for a TiDB Cloud account</a> and try it for yourself with this <a href="https://ossinsight.io/blog/try-it-yourself/">10-minute tutorial</a>.</p><h2>Contact us</h2><p>Do you find <strong><a href="https://ossinsight.io/">OSSInsight.io</a></strong> useful and fun to work with? Do you have any question or feedback to share with us? Feel free to <a href="https://github.com/pingcap/ossinsight/issues/new">file an issue</a> on GitHub or follow us on <a href="https://twitter.com/OSSInsight/">Twitter</a> to get the latest information. You’re also welcome to share this insight tool with your friends.</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[SaaS Insight for Building a Real-time CRM Application]]></title>
+            <link>https://ossinsight.io/blog/saas-insight-for-building-a-real-time-crm-application</link>
+            <guid>/saas-insight-for-building-a-real-time-crm-application</guid>
+            <pubDate>Sun, 01 May 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[This article describes how to building a real-time CRM application in a better way. Includes the potential database solutions.]]></description>
+            <content:encoded><![CDATA[<blockquote><p>Providing insights on large volume of email data might not be as easy as we thought. While data coming in real-time, indices and metadata are to be built consistently. To make things worse, the data volume is beyond traditional single node databases&#x27; reach.</p></blockquote><h2>Background</h2><p>To store large volumes of real-time user data like email and provide insights is not easy. If your application is layered on top of Gmail to automatically extract and organize the useful information buried inside of our inboxes.</p><p> It became clear that they were going to need a better system for organizing terabytes of email metadata to power collaboration as their customer base rapidly increased, it is not easy to provide insights. You need to organize email data by first applying a unique identifier to the emails and then proactively indexing the email metadata. The unique identifier is what connects the same email headers across. For each email inserted in real-time, the system extracts meta information from it and builds indices for high concurrent access. When data volume is small, it&#x27;s all good: traditional databases provide all you need. However, when data size grows beyond a single node&#x27;s capacity, everything becomes very hard.</p><h2>Potential Database Solutions</h2><p>Regarding databases, there are some options you might consider:</p><ol><li><strong>NoSQL database.</strong> While fairly scalable, it does not provide you indexing and comprehensive query abilities. You might end up implementing them in your application code.</li><li><strong>Sharing cluster of databases.</strong> Designing sharding key and paying attention to the limitations between shards are painful. It might be fine for applications with simple schema designs, but it will be too complicated for CRM. Moreover, it&#x27;s very hard to maintain.</li><li><strong>Analytical databases.</strong> They are fine for dashboard and reporting. But not fine for high concurrent updates and index based serving.</li></ol><h2>How to get real-time insights</h2><p><a href="https://docs.pingcap.com/tidb/stable/overview?utm_source=ossinsight&amp;utm_medium=referral">TiDB</a> is a distributed database with user experience of traditional databases. It looks like a super large MySQL without the limitations of NoSQL and sharding cluster solutions. With TiDB, you can simply have the base information, indices and metadata being updated in a concurrent manner with the help of cross-node transaction ability. </p><p>To build such a system, you just need following steps:</p><ol><li><strong>Create schemas</strong> according to your access pattern with indices on user name, organization, job title etc.</li><li><strong>Use streaming system</strong> to gather and extract meta information from your base data</li><li><strong>Insert into TiDB via ordinary MySQL client driver like JDBC.</strong> You might want to gather data in small batches of hundreds of rows to speed up ingestion. In a single transaction, updates on base data, indices and meta information are guaranteed to be consistent.</li><li>Optionally, <strong>deploy a couple of <a href="https://docs.pingcap.com/tidb/stable/tiflash-overview?utm_source=ossinsight&amp;utm_medium=referral">TiFlash</a> nodes</strong> to speed up large scale reporting queries.</li><li><strong>Access the data</strong> just like in MySQL and you are all done. SQL features for analytics like aggregations, multi-joins or window functions are all supported with great performance.</li></ol><p>For more cases, please see <a href="https://en.pingcap.com/customers/?utm_source=ossinsight&amp;utm_medium=referral">here</a>.</p><p>:::info</p><h3>🌟 Details in how OSS Insight works</h3><p>Go to read <a href="/blog/try-it-yourself">Use TiDB Cloud to Analyze GitHub Events in 10 Minutes</a> and use the <a href="https://tidbcloud.com/free-trial?utm_source=ossinsight&amp;utm_medium=referral">Developer Tier</a> <strong>free</strong> for 1 year.</p><p>You can find how we deal with massive github data in <a href="/blog/how-it-works">Data Preparation for Analytics</a> as well!
+:::</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Use TiDB Cloud to Analyze GitHub Events in 10 Minutes]]></title>
+            <link>https://ossinsight.io/blog/try-it-yourself</link>
+            <guid>/try-it-yourself</guid>
+            <pubDate>Fri, 01 Apr 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[In this tutorial, we will provide you with a piece of sample data of all GitHub events occurring on January 1, 2022, and walk you through on how to use TiDB Cloud to analyze this data in 10 minutes.]]></description>
+            <content:encoded><![CDATA[<p><a href="https://docs.pingcap.com/tidb/stable/overview?utm_source=ossinsight&amp;utm_medium=referral">TiDB</a> is an open source distributed NewSQL database with horizontal scalability, high availability, and strong consistency. It can also deal with mixed OLTP and OLAP workloads at the same time by leveraging its hybrid transactional and analytical (HTAP) capability. </p><p><strong><a href="https://docs.pingcap.com/tidbcloud/public-preview?utm_source=ossinsight&amp;utm_medium=referral">TiDB Cloud</a> is a fully-managed Database-as-a-Service (DBaaS)</strong> that brings everything great about TiDB to your cloud and lets you focus on your applications, not the complexities of your database. </p><p>In this tutorial, we will provide you with a piece of sample data of all GitHub events occurring on January 1, 2022, and walk you through on how to use TiDB Cloud to analyze this data in 10 minutes.  </p><h2>Sign up for a TiDB Cloud account (Free)</h2><ol><li>Click <a href="https://tidbcloud.com/free-trial?utm_source=ossinsight&amp;utm_medium=referral">here</a> to sign up for a TiDB Cloud account free of charge. </li><li><a href="https://tidbcloud.com/?utm_source=ossinsight&amp;utm_medium=referral">Log in</a> to your account.</li></ol><h2>Create a TiDB Developer Tier cluster (Free)</h2><p>Once you register an account, you can create a free cluster with TiDB Developer Tier. </p><p>:::info
+A cluster is a database to store data.
+:::</p><ol><li>Click <strong>Get Started for Free</strong> and start to create a free cluster. </li></ol><p><img src="./dev-tier.png"/></p><ol start="2"><li>On the <strong>Create a Cluster</strong> page, set up your cluster name and root password.</li><li>Note that the cloud provider is AWS by default, and then <strong>MUST</strong> select the <code>US-West-2 (Oregon)</code> region to create the cluster.</li><li>The cluster tier is S1.dev by default.</li><li>Click <strong>Submit</strong>.
+Your TiDB Cloud cluster will be created in approximately 1 to 3 minutes.</li></ol><p>:::note
+The Developer Tier is <strong>free</strong> for 1 year.
+:::</p><h2>Import data to your TiDB Cloud cluster</h2><h3>Import the data</h3><p>Once your cluster is ready, you can start to import the sample data to your cluster. </p><p>:::info
+We have merged the create database/table in the SQL files, so you don&#x27;t need to <code>create database/tables</code> by yourself.</p><p>If you want to know the table schema, you can check <code>desc gharchive_dev</code> later in the following step.
+:::</p><ol><li>Click your cluster name in <strong>Active Cluster</strong> page to get into the detail page of your cluster.</li><li>Click the <strong>Import</strong> button on the <strong>Active Clusters</strong> page and then go to the <strong>Data Import Task</strong> page. </li></ol><p><img src="./import.png"/></p><ol start="3"><li>Copy the values below and paste to the blanks of <strong>Bucket URL</strong> and <strong>Role-ARN</strong> respectively on the <strong>Data Import Task</strong> page.</li></ol><p><strong>Bucket URL</strong>:</p><pre><code>s3://tidbcloud-samples/gharchive/
+</code></pre><p><strong>Role-ARN</strong>:</p><pre><code>arn:aws:iam::385595570414:role/import-sample-access
+</code></pre><ol start="4"><li>Choose <strong>US West (Oregon)</strong> for your <strong>Bucket region</strong>;</li><li>Tick <strong>TiDB Dumpling</strong> for the <strong>Data Format</strong>. </li><li>Input your cluster password in the blank of <strong>Password</strong> on the <strong>Target Database</strong> section. </li></ol><p><img src="./fill.png"/></p><ol start="7"><li>After you fill in all the blanks on the <strong>Data Import Task</strong> page, click the <strong>Import</strong> button at the bottom of this page and wait for a few moments for the system to complete data importing. </li></ol><h3>Use the web shell to check if data is ready</h3><p>TiDB Cloud provides a web shell to connect the database online. </p><ol><li>Click the <strong>Exit</strong> button after you successfully import the data into your cluster. </li><li>Click your cluster name in <strong>Active Cluster</strong> page to get into the detail page of your cluster.</li><li>Then, click the <strong>Connect</strong> button and the <strong>Connect to TiDB</strong> panel pops out. </li><li>Choose <strong>Web SQL Shell</strong> --&gt; <strong>Open SQL Shell</strong>. </li><li>Then input your cluster password as shown in the image below.</li></ol><p><img src="./web-shell.png"/></p><h3>Set column storage replica: TiFlash (Optional but coult make SQL faster!)</h3><p><a href="https://docs.pingcap.com/tidb/stable/tiflash-overview?utm_source=ossinsight&amp;utm_medium=referral">TiFlash</a> is the key component that makes TiDB / TiDB Cloud an HTAP database and capable of dealing with OLTP and OLAP workloads at the same time. </p><p>Here, you can try the following SQL commands on TiDB Cloud to experience its real-time analytics with ease.</p><ol><li>Execute the SQL statements specified below </li></ol><pre><code class="language-sql">use gharchive_dev;
+ALTER TABLE github_events SET TIFLASH REPLICA 1;
+</code></pre><ol start="2"><li>Setting a TiFlash replica will take you some time, so you can use the following SQL statements to check if the procedure is done or not. </li></ol><pre><code class="language-sql">SELECT * FROM information_schema.tiflash_replica WHERE TABLE_SCHEMA = &#x27;gharchive_dev&#x27; and TABLE_NAME = &#x27;github_events&#x27;;
+</code></pre><p>If the results you get are the same as follows, then it means the procedure is done. </p><pre><code class="language-sql">mysql&gt; SELECT * FROM information_schema.tiflash_replica WHERE TABLE_SCHEMA = &#x27;gharchive_dev&#x27; and TABLE_NAME = &#x27;github_events&#x27;;
++---------------+---------------+----------+---------------+-----------------+-----------+----------+
+| TABLE_SCHEMA  | TABLE_NAME    | TABLE_ID | REPLICA_COUNT | LOCATION_LABELS | AVAILABLE | PROGRESS |
++---------------+---------------+----------+---------------+-----------------+-----------+----------+
+| gharchive_dev | github_events |       68 |             1 |                 |         1 |        1 |
++---------------+---------------+----------+---------------+-----------------+-----------+----------+
+1 row in set (0.27 sec)
+
+mysql&gt;
+</code></pre><h2>Analysis!</h2><p>After you finish all the steps above, you can start the analytical process. </p><p>:::tip
+If you want to know the table schema, you can use <code>show create table tbl_name</code> to get that information.
+:::</p><p>Because you have imported the sample data of all GitHub events occurred on the first hour of 2022 (from 2022-01-01 00:00:00 to 2022-01-01 00:59:59), you can start to make any queries based on that data by using SQL commands. </p><h3>How many events occurred in total?</h3><p>Execute the following SQL statement to query the total number of events. </p><pre><code class="language-sql">SELECT count(*) FROM github_events;
+</code></pre><h3>Which repository gets the most stars?</h3><p>Execute the following statements to query the most starred repository. </p><pre><code class="language-sql">  SELECT repo_name, count(*) AS events_count
+    FROM github_events
+   WHERE type = &#x27;WatchEvent&#x27; /* Yes, `WatchEvent` means star */
+GROUP BY 1
+ORDER BY 2 DESC
+   LIMIT 20;
+</code></pre><h2>Mini Test</h2><p>Here is a small test for you to practice how to use TiDB Cloud to conduct analytics. </p><h3>Q: Who is the most active contributor except the robot accounts on the first hour of 2022?</h3><h3>Click for the answer. ⬇️</h3><details><summary>Click me to show answer</summary><pre><code class="language-sql">  SELECT actor_login, 
+         count(*) AS events_count
+    FROM github_events
+   WHERE actor_login NOT LIKE &#x27;%bot%&#x27;
+GROUP BY 1
+ORDER BY 2 DESC 
+   LIMIT 20;
+</code></pre></details><p>:::info</p><h3>🌟 Details in how OSS Insight works</h3><p>Find the reason <a href="/blog/why-we-choose-tidb-to-support-ossinsight">How we implement OSS Insight ?</a>.</p><p>You can find how we deal with massive github data in <a href="/blog/how-it-works">Data Preparation for Analytics</a> as well!
+:::</p>]]></content:encoded>
+        </item>
+        <item>
+            <title><![CDATA[Data Preparation for Analytics]]></title>
+            <link>https://ossinsight.io/blog/how-it-works</link>
+            <guid>/how-it-works</guid>
+            <pubDate>Tue, 01 Mar 2022 00:00:00 GMT</pubDate>
+            <description><![CDATA[In this section, we will explain step by step how we process the massive data archived by GH Archive which up to 4.7 billion rows.]]></description>
+            <content:encoded><![CDATA[<h2>Data</h2><p>All the data we use here on this website sources from <a href="https://www.gharchive.org/">GH Archive</a>, a non-profit project that records and archives all GitHub events data since 2011. The total data volume archived by GH Archive can be up to 4 billion rows. We download the <code>json file</code> on GH Archive and convert it into csv format via Script, and finally load it into the TiDB cluster in parallel through <a href="https://docs.pingcap.com/tidb/stable/tidb-lightning-overview">TiDB-Lightning</a>.</p><p>In this section, we will explain step by step how we conduct this process. </p><ol><li>Prepare the data in csv format for TiDB Lighting. </li></ol><pre><code>├── gharchive_dev.github_events.000000000000.csv
+├── gharchive_dev.github_events.000000000001.csv
+├── gharchive_dev.github_events.000000000002.csv
+├── gharchive_dev.github_events.000000000003.csv
+├── gharchive_dev.github_events.000000000004.csv
+├── gharchive_dev.github_events.000000000005.csv
+├── gharchive_dev.github_events.000000000006.csv
+├── gharchive_dev.github_events.000000000007.csv
+├── gharchive_dev.github_events.000000000008.csv
+├── gharchive_dev.github_events.000000000009.csv
+├── gharchive_dev.github_events.000000000010.csv
+├── gharchive_dev.github_events.000000000011.csv
+├── gharchive_dev.github_events.000000000012.csv
+├── gharchive_dev.github_events.000000000013.csv
+</code></pre><ol start="2"><li>Configure the TiDB Lightning as follows.</li></ol><pre><code>cat tidb-lightning.toml
+[mydumper.csv]
+separator = &#x27;,&#x27;
+delimiter = &#x27;&quot;&#x27;
+header = true
+not-null = false
+backslash-escape = true
+trim-last-separator = false
+
+[tikv-importer]
+ backend = &quot;local&quot;
+ sorted-kv-dir = &quot;/kvdir/&quot;
+
+disk-quota = &quot;1.5TiB&quot;
+
+[mydumper]
+data-source-dir = &quot;/csv_dir/&quot;
+strict-format = false
+no-schema = true
+
+[tidb]
+host = &quot;xxx&quot;
+port = 3306
+user = &quot;github_events&quot;
+password = &quot;******&quot;
+
+[lightning]
+check-requirements = false
+region-concurrency = 32
+meta-schema-name = &quot;gharchive_meta&quot;
+</code></pre><ol start="3"><li>Load the data into the TiDB cluster. </li></ol><pre><code class="language-bash">nohup tidb-lightning -config ./tidb-lightning.toml &gt; nohup.out
+</code></pre><ol start="4"><li>Convert the unstructured <code>json file</code> provided by GH Archive into structured data. </li></ol><pre><code>gharchive_dev&gt; desc github_events;
++--------------------+--------------+------+-----+---------+-------+
+| Field              | Type         | Null | Key | Default | Extra |
++--------------------+--------------+------+-----+---------+-------+
+| id                 | bigint(20)   | YES  | MUL | &lt;null&gt;  |       |
+| type               | varchar(255) | YES  | MUL | &lt;null&gt;  |       |
+| created_at         | datetime     | YES  | MUL | &lt;null&gt;  |       |
+| repo_id            | bigint(20)   | YES  | MUL | &lt;null&gt;  |       |
+| repo_name          | varchar(255) | YES  | MUL | &lt;null&gt;  |       |
+| actor_id           | bigint(20)   | YES  | MUL | &lt;null&gt;  |       |
+| actor_login        | varchar(255) | YES  | MUL | &lt;null&gt;  |       |
+| actor_location     | varchar(255) | YES  |     | &lt;null&gt;  |       |
+| language           | varchar(255) | YES  | MUL | &lt;null&gt;  |       |
+| additions          | bigint(20)   | YES  | MUL | &lt;null&gt;  |       |
+| deletions          | bigint(20)   | YES  | MUL | &lt;null&gt;  |       |
+| action             | varchar(255) | YES  | MUL | &lt;null&gt;  |       |
+| number             | int(11)      | YES  |     | &lt;null&gt;  |       |
+| commit_id          | varchar(255) | YES  | MUL | &lt;null&gt;  |       |
+| comment_id         | bigint(20)   | YES  | MUL | &lt;null&gt;  |       |
+| org_login          | varchar(255) | YES  | MUL | &lt;null&gt;  |       |
+| org_id             | bigint(20)   | YES  | MUL | &lt;null&gt;  |       |
+| state              | varchar(255) | YES  |     | &lt;null&gt;  |       |
+| closed_at          | datetime     | YES  | MUL | &lt;null&gt;  |       |
+| comments           | int(11)      | YES  | MUL | &lt;null&gt;  |       |
+| pr_merged_at       | datetime     | YES  | MUL | &lt;null&gt;  |       |
+| pr_merged          | tinyint(1)   | YES  |     | &lt;null&gt;  |       |
+| pr_changed_files   | int(11)      | YES  | MUL | &lt;null&gt;  |       |
+| pr_review_comments | int(11)      | YES  | MUL | &lt;null&gt;  |       |
+| pr_or_issue_id     | bigint(20)   | YES  | MUL | &lt;null&gt;  |       |
+| event_day          | date         | YES  | MUL | &lt;null&gt;  |       |
+| event_month        | date         | YES  | MUL | &lt;null&gt;  |       |
+| author_association | varchar(255) | YES  |     | &lt;null&gt;  |       |
+| event_year         | int(11)      | YES  | MUL | &lt;null&gt;  |       |
+| push_size          | int(11)      | YES  |     | &lt;null&gt;  |       |
+| push_distinct_size | int(11)      | YES  |     | &lt;null&gt;  |       |
++--------------------+--------------+------+-----+---------+-------+
+</code></pre><ol start="5"><li>With structured data at hand, we can start to make further analysis with TiDB Cloud. Execute SQL commands to generate analytical results. For example, you can execute SQL commands below to output the top 10 most starred JavaScript framework repos in 2021.</li></ol><pre><code>  SELECT js.name, count(*) as stars 
+    FROM github_events 
+         JOIN js_framework_repos js ON js.id = github_events.repo_id 
+   WHERE type = &#x27;WatchEvent&#x27; and event_year = 2021 
+GROUP BY 1 
+ORDER BY 2 DESC
+   LIMIT 10;
++-------------------+-------+
+| name              | stars |
++-------------------+-------+
+| facebook/react    | 22830 |
+| sveltejs/svelte   | 18573 |
+| vuejs/vue         | 18015 |
+| angular/angular   | 11037 |
+| alpinejs/alpine   | 6993  |
+| preactjs/preact   | 2965  |
+| hotwired/stimulus | 1355  |
+| marko-js/marko    | 1006  |
+| neomjs/neo        | 826   |
+| tastejs/todomvc   | 813   |
++-------------------+-------+
+</code></pre><p>We have analyzed all the GitHub projects regarding databases, JavaScripe frameworks, programming languages, web frameworks, and low-code development tools, and provided valuable insights in 2021, in real time, and custom insights. If the repository you care about is not included here, you&#x27;re welcome to submit your PR <a href="https://github.com/hooopo/gharchive/tree/main/meta/repos">here</a>. If you want to gain more insights into other areas, you can try TiDB Cloud by yourselves with this <a href="/blog/try-it-yourself/">10-minute tutorial</a>. </p><p>Below are the areas of GitHub projects we have analyzed. </p><pre><code>gharchive_dev&gt; show tables;
++-----------------------------+
+| Tables_in_gharchive_dev     |
++-----------------------------+
+| cn_repos                    |
+| css_framework_repos         |
+| db_repos                    |
+| github_events               |
+| js_framework_repos          |
+| nocode_repos                |
+| programming_language_repos  |
+| static_site_generator_repos |
+| web_framework_repos         |
++-----------------------------+
+</code></pre><p>:::info</p><h3>🌟 Details in how OSS Insight works</h3><p>Go to read <a href="/blog/try-it-yourself">Use TiDB Cloud to Analyze GitHub Events in 10 Minutes</a> and use the <a href="https://tidbcloud.com/free-trial?utm_source=ossinsight&amp;utm_medium=referral">Developer Tier</a> <strong>free</strong> for 1 year.</p><p>You can find the reason <a href="/blog/why-we-choose-tidb-to-support-ossinsight">How we implement OSS Insight ?</a> as well!
+:::</p>]]></content:encoded>
+        </item>
+    </channel>
+</rss>
