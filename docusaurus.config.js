@@ -158,9 +158,9 @@ const config = {
         },
         docs: false,
         blog: {
-          blogTitle: 'Blog',
+          blogTitle: '博客',
           blogDescription: 'Helping dev teams adopt OSS technologies and practices. Written by software engineers and community analysts.',
-          blogSidebarTitle: 'All Blog Posts',
+          blogSidebarTitle: '所有的博客',
           blogSidebarCount: 'ALL',
           postsPerPage: 10,
           showReadingTime: true,
@@ -215,17 +215,17 @@ const config = {
           {
             to: '/collections/open-source-database',
             position: 'left',
-            label: 'Collections',
+            label: '技术领域',
             activeBasePath: '/collections'
           },
-          {to: '/blog', label: 'Blog', position: 'left'},
+          {to: '/blog', label: '博客', position: 'left'},
           {
             type: 'dropdown',
-            label: 'Workshop',
+            label: '实验室',
             position: 'left',
             items: [
-              {label: '🗓️ Join Workshops!', to: '/workshop/overview'},
-              {label: '└─ Mini OSS Insight', to: '/workshop/mini-ossinsight/introduction'},
+              {label: '🗓️ 加入实验室!', to: '/workshop/overview'},
+              {label: '└─ 迷你版 OSS Insight', to: '/workshop/mini-ossinsight/introduction'},
               {label: '└─ NFT Insight', to: '/workshop/nft-insight'},
               {label: '└─ Twitter Insight - not ready', to: '/workshop/twitter-insight'},
               {label: '└─ Stack Overflow Insight - not ready', to: '/workshop/stackoverflow-insight'},
@@ -244,13 +244,13 @@ const config = {
           */
           {
             type: 'dropdown',
-            label: 'More',
+            label: '更多',
             position: 'left',
             items: [
-              {label: 'ℹ️  About OSS Insight', to: '/about'},
-              {label: 'ℹ️  About TiDB Cloud', to: 'https://en.pingcap.com/tidb-cloud?utm_source=ossinsight&utm_medium=referral'},
-              {label: '❓ How do we implement OSS Insight?', to: '/blog/why-we-choose-tidb-to-support-ossinsight'},
-              {label: '🐞 Report an Issue', to: 'https://github.com/pingcap/ossinsight/issues'},
+              {label: 'ℹ️  关于 OSS Insight', to: '/about'},
+              {label: 'ℹ️  关于 TiDB Cloud', to: 'https://en.pingcap.com/tidb-cloud?utm_source=ossinsight&utm_medium=referral'},
+              {label: '❓ 我们是怎么实现的 OSS Insight?', to: '/blog/why-we-choose-tidb-to-support-ossinsight'},
+              {label: '🐞 问题反馈', to: 'https://github.com/pingcap/ossinsight/issues'},
             ]
           },
           {
@@ -284,29 +284,29 @@ const config = {
             title: 'OSS Insight',
             items: [
               {
-                label: 'Collections',
+                label: '技术领域',
                 to: '/collections/open-source-database',
               },
               {
-                label: 'Blog',
+                label: '博客',
                 to: '/blog',
               },
               {
-                label: 'Workshop',
+                label: '实验室',
                 to: '/workshop/overview',
               },
               {
-                label: 'How do we implement OSS Insight?',
+                label: '我们是怎么实现的 OSS Insight?',
                 to: '/blog/why-we-choose-tidb-to-support-ossinsight',
               },
               {
-                label: 'About',
+                label: '关于',
                 to: '/about',
               },
             ],
           },
           {
-            title: 'Sponsored By',
+            title: '赞助者',
             items: [
               {
                 label: 'TiDB Cloud',
@@ -315,7 +315,7 @@ const config = {
             ],
           },
           {
-            title: 'Built With',
+            title: '构建工具',
             items: [
               {
                 label: 'GitHub REST API',
@@ -344,7 +344,7 @@ const config = {
             ],
           },
           {
-            title: 'Contacts',
+            title: '联系我们',
             items: [
               {
                 label: 'Twitter',
