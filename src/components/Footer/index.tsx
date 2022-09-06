@@ -19,7 +19,7 @@ export default function Footer() {
     <>
       <Section>
         <Typography variant='h2' sx={{fontSize:40}} align='center'>
-          Wonder how OSS Insight works?
+          想了解 OSS Insight 是如何工作的?
         </Typography>
         <Cards sx={{mt: 2}} xs={12} sm={6} md={4}>
           <StandardCard
@@ -57,9 +57,9 @@ export default function Footer() {
           />
         </Cards>
         <Box textAlign='center' sx={{fontSize: 24, mt: 6}}>
-        Want to create your own IDEAInsight in a day?&nbsp;<br />
+        想在一天内创建您所在领域的 Insight 系统?&nbsp;<br />
           <Button sx={{fontSize: 24, fontWeight: 'bold', verticalAlign: 'baseline', textDecoration: 'underline'}} component={Link} href='https://share.hsforms.com/1E-qtGQWrTVmctP8kBT34gw2npzm'>
-            Join a workshop!
+            加入实验室!
           </Button>
         </Box>
       </Section>
