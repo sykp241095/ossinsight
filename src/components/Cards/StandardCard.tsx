@@ -90,7 +90,7 @@ export default function StandardCard({
   image,
   description,
   readMore,
-  buttonText = 'read more',
+  buttonText = '了解更多',
   buttonVariant,
   codeStyleDescription = true,
   elevation,
