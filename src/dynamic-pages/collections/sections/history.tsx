@@ -53,7 +53,7 @@ export default withInViewContainer(function HistorySection() {
 
   return (
     <section>
-      <H2>Historical Trending of Top 10</H2>
+      <H2>历史趋势（前 10 名）</H2>
       <P2>A line chart displays the current top 10 repositories and how their ranking have changed since 2011. You can display rankings based on the number of stars, pull requests, pull request creators, and issues.</P2>
       {tabs}
       <br />

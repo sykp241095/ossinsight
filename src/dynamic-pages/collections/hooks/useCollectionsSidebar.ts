@@ -14,11 +14,11 @@ export function useCollectionsSidebar(): PropSidebar {
     items: [{
       type: 'link',
       href: `/collections/${collection.slug}`,
-      label: 'Ranking'
+      label: '月度&年度排行榜'
     }, {
       type: 'link',
       href: `/collections/${collection.slug}/trends/`,
-      label: 'Popularity Trends'
+      label: '历史趋势'
     }]
   })), [collections]);
 }

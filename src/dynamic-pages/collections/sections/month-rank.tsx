@@ -54,7 +54,7 @@ export default withInViewContainer(function MonthRankSection() {
 
   return (
     <section>
-      <H2 id="monthly-rankings">Month-to-month Ranking</H2>
+      <H2 id="monthly-rankings">月度排行</H2>
       <P2>The following table ranks repositories using three metrics: stars, pull requests, and issues. The table compares the most recent two months of data and indicates whether repositories are moving up or down the rankings.</P2>
       {tabs}
       <br />
@@ -63,7 +63,7 @@ export default withInViewContainer(function MonthRankSection() {
         data => (
           <>
             <H3 fontSize={14} align="center">
-              Monthly Ranking - {dimension.title}
+              月度排行 - {dimension.title}
             </H3>
             <TableContainer>
               <Table className="clearTable" size="small" stickyHeader>

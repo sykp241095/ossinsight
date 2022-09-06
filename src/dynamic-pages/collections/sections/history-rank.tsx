@@ -23,8 +23,8 @@ export default withInViewContainer(function HistoryRankSection() {
 
   return (
     <section>
-      <H2 id="historical-rankings">Year-to-year Ranking</H2>
-      <P2>The following pipeline chart shows how repo rankings have changed year to year since 2011. Repos are ranked by stars, pull requests, pull request creators, and issues.</P2>
+      <H2 id="historical-rankings">历年排行</H2>
+      <P2>下图展示从 2011 年开始，该领域每年的排行榜（可以按 stars, pull requests, pull request creators, 和 issues）</P2>
       {tabs}
       <br />
       {withRemote(
