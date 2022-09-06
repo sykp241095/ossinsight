@@ -23,8 +23,8 @@ export default function Footer() {
         </Typography>
         <Cards sx={{mt: 2}} xs={12} sm={6} md={4}>
           <StandardCard
-            title='How do we implement OSS Insight ?'
-            description='Blog: 10 min read'
+            title='我们是如何实现的 OSS Insight ?'
+            description='博客: 10 分钟'
             codeStyleDescription={false}
             readMore='/blog/why-we-choose-tidb-to-support-ossinsight'
             buttonVariant='outlined'
@@ -34,8 +34,8 @@ export default function Footer() {
             }}
           />
           <StandardCard
-            title='Use TiDB Cloud to Analyze GitHub Events in 10 Minutes'
-            description='Tutorial: 10 min read'
+            title='10 分钟体验用 TiDB Cloud 分析 GitHub 事件'
+            description='教程: 10 分钟'
             codeStyleDescription={false}
             readMore='/blog/try-it-yourself'
             buttonVariant='outlined'
@@ -45,8 +45,8 @@ export default function Footer() {
             }}
           />
           <StandardCard
-            title='Join a Workshop to Setup a Mini OSS Insight'
-            description='Tutorial: 25 min'
+            title='加入工作坊以搭建一个迷你版 OSS Insight'
+            description='教程: 25 分钟'
             codeStyleDescription={false}
             readMore='/workshop/overview'
             buttonVariant='outlined'

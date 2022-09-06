@@ -8,8 +8,8 @@ export function TopListV2Section() {
   return (
     <Section id="trending-repos" maxWidth={false}>
       <a href="#trending-repos">
-      <H2 sx={{ fontSize: 24, mb: 2, color:'white' }} >🔥 Trending Repos</H2></a>
-      <Body sx={{ mb: 4, mt: 2, fontSize: 14 }}>Active repositories are ranked by the number of stars. Because bots make a massive number of commits, this query was filtered. </Body>
+      <H2 sx={{ fontSize: 24, mb: 2, color:'white' }} >🔥 热门项目</H2></a>
+      <Body sx={{ mb: 4, mt: 2, fontSize: 14 }}>按 Star 的增量排序（机器人除外）</Body>
       <TopListV2 />
     </Section>
   );
