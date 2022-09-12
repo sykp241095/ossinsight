@@ -42,6 +42,11 @@ namespace :gh do
       if ENV['ID'].present? && (ENV['ID'] != yml['id'].to_s)
         puts "skip collectionid #{yml['id']}" 
         next
+      else
+        if ENV['ID'].present?
+          puts "clean cache for collection #{ENV['ID']}"
+          ActiveRecord::Base.connection.execute("DELETE FROM cached_table_cache WHERE cache_key LIKE '%collection-%#{ENV['ID']}%'")
+        end
       end
       if collection && ENV['FORCE'].blank?
         puts "skip collection id #{yml['id']}"

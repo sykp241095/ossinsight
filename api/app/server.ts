@@ -1,36 +1,27 @@
 import Router from "koa-router";
 import Query from "./core/Query";
-import {TiDBQueryExecutor} from "./core/TiDBQueryExecutor";
 import {DefaultState} from "koa";
 import type {ContextExtends} from "../index";
-import GhExecutor from "./core/GhExecutor";
 import {register} from "prom-client";
 import {measureRequests} from "./middlewares/measureRequests";
-import CollectionService from "./services/CollectionService";
-import GHEventService from "./services/GHEventService";
+import { Socket, Server } from "socket.io";
+import { Consola } from "consola";
+import { TiDBQueryExecutor } from "./core/TiDBQueryExecutor";
 import CacheBuilder from "./core/cache/CacheBuilder";
+import GhExecutor from "./core/GhExecutor";
+import CollectionService from "./services/CollectionService";
 import UserService from "./services/UserService";
-import { getConnectionOptions } from "./utils/db";
+import GHEventService from "./services/GHEventService";
 
-export default async function server(router: Router<DefaultState, ContextExtends>) {
-  // Init MySQL Executor. 
-  const queryExecutor = new TiDBQueryExecutor(getConnectionOptions({
-    connectionLimit: parseInt(process.env.CONNECTION_LIMIT || '10'),
-    queueLimit: parseInt(process.env.QUEUE_LIMIT || '20')
-  }))
-
-  // Init Cache Builder; 
-  const enableCache = process.env.ENABLE_CACHE === '1' ? true : false;
-  const cacheBuilder = new CacheBuilder(enableCache);
-
-  // Init GitHub Executor.
-  const tokens = (process.env.GH_TOKENS || '').split(',').map(s => s.trim()).filter(Boolean);
-  const ghExecutor = new GhExecutor(tokens, cacheBuilder);
-
-  // Init Services.
-  const collectionService = new CollectionService(queryExecutor, cacheBuilder);
-  const userService = new UserService(queryExecutor, cacheBuilder);
-  const ghEventService = new GHEventService(queryExecutor);
+export default async function httpServerRoutes(
+  router: Router<DefaultState, ContextExtends>,
+  queryExecutor: TiDBQueryExecutor,
+  cacheBuilder: CacheBuilder,
+  ghExecutor: GhExecutor,
+  collectionService: CollectionService,
+  userService: UserService,
+  ghEventService: GHEventService
+) {
 
   router.get('/q/:query', measureRequests({ urlLabel: 'path' }), async ctx => {
     try {
@@ -166,4 +157,47 @@ export default async function server(router: Router<DefaultState, ContextExtends
   router.get('/metrics/:name', async ctx => {
     ctx.body = await register.getSingleMetricAsString(ctx.params.name)
   })
+}
+
+export function socketServerRoutes(
+  socket: Socket, io: Server, logger: Consola, queryExecutor: TiDBQueryExecutor, cacheBuilder: CacheBuilder, 
+  collectionService: CollectionService, userService: UserService, ghEventService: GHEventService
+) {
+  // queryMsg example 1: events-increment?ts=1662519722
+  // queryMsg example 2: events-increment-list
+  // queryMsg example 3: events-total
+  // queryMsg example 4: events-increment-intervals
+  // Same with `/q/:query` in http router.
+  socket.on("query", async (queryMsg: string) => {
+    try {
+      const queryType = queryMsg.split("?")[0];
+      const searchString = queryMsg.split("?").pop() || "";
+      const search = new URLSearchParams(searchString);
+      const searchMap = [...search.keys()].reduce<{ [key: string]: string }>(
+        (prev, item) => {
+          prev[item] = search.get(item) as string;
+          return prev;
+        },
+        {}
+      );
+      const q = new Query(
+        queryType,
+        cacheBuilder,
+        queryExecutor,
+        ghEventService,
+        collectionService,
+        userService
+      );
+      const res = await q.run(
+        searchMap,
+        false,
+        null,
+        socket.handshake.address,
+        true
+      );
+      socket.emit(queryType, res);
+    } catch (error) {
+      logger.error("Failed to request %s[ws]: ", queryMsg, error);
+    }
+  });
 }

@@ -143,7 +143,7 @@ const config = {
         ]
       }
     ],
-    'docusaurus-plugin-hubspot',
+    // 'docusaurus-plugin-hubspot',
   ],
   presets: [
     [
@@ -218,6 +218,7 @@ const config = {
             label: '技术领域',
             activeBasePath: '/collections'
           },
+          {to: 'https://live.ossinsight.io', label: '💓 Live', position: 'left'},
           {to: '/blog', label: '博客', position: 'left'},
           {
             type: 'dropdown',
@@ -377,9 +378,9 @@ const config = {
         darkTheme: darkCodeTheme,
         autoCollapseSidebarCategories: true,
       },
-      hubspot: {
-        accountId: '4466002',
-      },
+      // hubspot: {
+      //   accountId: '4466002',
+      // },
     }),
 };
 
