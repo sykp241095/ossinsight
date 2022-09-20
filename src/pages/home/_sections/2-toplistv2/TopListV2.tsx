@@ -89,7 +89,7 @@ const DataTable = ({ data, loading, page, rowsPerPage }: { data: ProcessedTopLis
         <TableHead>
           <TableRow>
             <TableCell variant="head">排名</TableCell>
-            <TableCell variant="head">仓库</TableCell>
+            <TableCell variant="head">代码仓库</TableCell>
             <TableCell variant="head">Stars</TableCell>
             <TableCell variant="head">Forks</TableCell>
             <TableCell variant="head">Pushes</TableCell>
