@@ -2,6 +2,7 @@
 node_modules
 
 # Build Result
+*.js
 app/**/*.js
 /dist
 
@@ -17,6 +18,13 @@ log
 *.log
 test/result/*.log
 .pnpm-debug.log
+/**/explain.result.txt
 
 # Fox Mac OS
 .DS_Store
+
+# Config file.
+params.schema.d.ts
+openapi.yaml
+static/openapi.yaml
+region-code-mappings.yaml

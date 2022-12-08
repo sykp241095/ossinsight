@@ -1,2 +1,0 @@
-class TrendingRepo < ApplicationRecord
-end
