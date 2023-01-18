@@ -1,11 +1,14 @@
-/// <reference path="../../src/plugins/stats/stats.ts" />
+/// <reference path="../../src/plugins/stats.ts" />
 
 import { bootstrapTestDatabase, getTestDatabase, releaseTestDatabase } from '../helpers/db';
 import { bootstrapApp, getTestApp, releaseApp } from '../helpers/app';
+import {bootstrapTestRedis, releaseTestRedis} from "../helpers/redis";
 
 beforeAll(bootstrapTestDatabase)
+beforeAll(bootstrapTestRedis)
 beforeAll(bootstrapApp)
 afterAll(releaseApp)
+afterAll(releaseTestRedis)
 afterAll(releaseTestDatabase)
 
 test('should insert record', async () => {

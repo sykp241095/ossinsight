@@ -15,6 +15,10 @@ export const APIServerEnvSchema = {
     DATABASE_URL: {
       type: 'string'
     },
+    REDIS_URL: {
+      type: 'string',
+      default: 'redis://localhost:6379/0'
+    },
     API_BASE_URL: {
       type: 'string'
     },
@@ -39,7 +43,24 @@ export const APIServerEnvSchema = {
     },
     PLAYGROUND_TRUSTED_GITHUB_LOGINS: {
       type: 'string',
-      separator: ','
+      separator: ',',
+      default: ''
+    },
+    EXPLORER_USER_MAX_QUESTIONS_PER_HOUR: {
+      type: 'number',
+      default: 15
+    },
+    EXPLORER_USER_MAX_QUESTIONS_ON_GOING: {
+      type: 'number',
+      default: 2
+    },
+    EXPLORER_GENERATE_SQL_CACHE_TTL: {
+      type: 'number',
+      default: 60 * 60 * 24 * 7
+    },
+    EXPLORER_QUERY_SQL_CACHE_TTL: {
+      type: 'number',
+      default: 60 * 60 * 24
     },
     GITHUB_OAUTH_CLIENT_ID: {
       type: 'string'
@@ -69,6 +90,12 @@ export const APIServerEnvSchema = {
     JWT_COOKIE_SAME_SITE: {
       type: 'boolean'
     },
+    AUTH0_DOMAIN: {
+      type: 'string'
+    },
+    AUTH0_SECRET: {
+      type: 'string'
+    }
     // We need additional undocumented env
     // - for playground:
     //   - PLAYGROUND_SESSION_<KEY>=<VALUE>

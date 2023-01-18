@@ -4,6 +4,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
+@import "./data-explore.css";
 
 :root {
   /*
@@ -275,4 +276,8 @@ html[data-theme='dark'] img[src$='#gh-light-mode-only'] {
     transform: translateY(7px);
     opacity: 0;
   }
+}
+
+hr.MuiDivider-root {
+  background-color: unset;
 }

@@ -1,10 +1,13 @@
 import { bootstrapApp, getTestApp, releaseApp } from './helpers/app';
 import { bootstrapTestDatabase, releaseTestDatabase } from './helpers/db';
 import io from 'socket.io-client';
+import {bootstrapTestRedis, releaseTestRedis} from "./helpers/redis";
 
 beforeAll(bootstrapTestDatabase);
+beforeAll(bootstrapTestRedis);
 beforeAll(bootstrapApp);
 afterAll(releaseApp);
+afterAll(releaseTestRedis);
 afterAll(releaseTestDatabase);
 
 const allowedOrigins = ['https://ossinsight.io', 'https://pingcap-ossinsight-preview-pr-9999.surge.sh', 'https://github1s.com', 'https://github.com'];
@@ -28,6 +31,7 @@ describe('http', () => {
           .toMatchObject({
             headers: {
               'access-control-allow-origin': origin,
+              'access-control-expose-headers': expect.stringMatching('x-playground-generate-sql-used, x-playground-generate-sql-limit'),
             },
           });
       }

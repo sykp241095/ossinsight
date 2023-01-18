@@ -1,7 +1,7 @@
 <h1 align="center">Open Source Software Insight!</h1>
 
 <a href="https://ossinsight.io">
-  <img src="/web/static/img/screenshots/homepage-2.gif"
+  <img src="/web/static/img/screenshots/homepage.gif"
 </a>
 
 <h4 align="center">
@@ -15,7 +15,7 @@
   •
   <a href="https://ossinsight.io/docs/workshop">Workshop</a>
   •
-  <a href="https://ossinsight.io/blog">Blogs</a>
+  <a href="https://ossinsight.io/blog">Blog</a>
   •
   <a href="https://ossinsight.io/docs">API</a>
   •
@@ -24,7 +24,7 @@
 
 ## Introduction
 
-OSS Insight analyzes billions of GitHub events and gets insights from them. It also provides a set of tools which can analyze a single repository or developer and compare any two open source software repositories hosted on GitHub.
+OSS Insight is a powerful tool that provides comprehensive, valuable, and trending insights into the open source world by analyzing billions of GitHub events. It provides in-depth analysis of individual GitHub repositories and developers, as well as the ability to compare two repositories using the same metrics.
 
 ### Feature 1: Preanalysis of some famous fields of technology 👁️
 
@@ -41,15 +41,16 @@ OSS Insight analyzes billions of GitHub events and gets insights from them. It a
   * [More](https://ossinsight.io/collections/open-source-database) ...
 
 **Welcome to add collections**
+
 👏 We welcome your contributions here! You can add a collection on our website by submitting PRs. Please create a `.yml` file under [the collections file path]( https://github.com/pingcap/ossinsight/tree/main/etl/meta/collections).
 
-[Here](https://github.com/pingcap/ossinsight/blob/main/CONTRIBUTING.md#add-a-collection) is a file template provides guidance on the information you need to include. We look forward to your PRs！
+[Here](https://github.com/pingcap/ossinsight/blob/main/CONTRIBUTING.md#add-a-collection) is a file template that describes what you need to include. We look forward to your PRs！
 
 ### Feature 2: Developer Analytics
 
 * **Basic**:
   * Stars, behavior, most used languages，and contribution trends
-  * Code (commits，pull requests，pull request size and code line changes), code reviews, and issues
+  * Code (commits, pull requests, pull request size and code line changes), code reviews, and issues
 * **Advanced**:
   * Contribution time distribution for all kind of contribution activities
   * Monthly stats about contribution activities in all public repositories
@@ -80,6 +81,17 @@ Examples:
 * [Compare CockroachDB and TiDB](https://ossinsight.io/analyze/pingcap/tidb?vs=cockroachdb/cockroach)
 * [Compare PyTorch and TensorFlow](https://ossinsight.io/analyze/pytorch/pytorch?vs=tensorflow/tensorflow)
 
+### Feature 5: GPT-Powered Data Exploration
+  
+Ask any questions about GitHub using Data Explorer, an AI-powered querying tool built with Chat2Query. No SQL skills needed. You can gain insights from 5+ billion rows of data.
+
+Examples:
+* [Projects similar to @facebook/react](https://ossinsight.io/explore?id=ba186a53-b2ab-4cad-a46f-e2c36566cacd)
+* [The most interesting Web3 projects](https://ossinsight.io/explore?id=f829026d-491c-44e0-937a-287f97a3cba7)
+* [Where are @kubernetes/kubernetes contributors from?](https://ossinsight.io/explore?id=754a681e-913f-4333-b55d-dbd8598bd84d)
+
+Check out more [popular questions](https://ossinsight.io/explore/).
+  
 ## Contribution
 
 We've released OSS Insight because it can do more insights about GitHub.We hope that others can benefit from the project. You are more than welcome to participate in capacity building. We are thankful for any contributions from the community.
@@ -94,9 +106,9 @@ We've released OSS Insight because it can do more insights about GitHub.We hope 
 
 ## Contact
 
-We have a few channels for contact：
+We have a few channels for contact:
 
-* [GitHub Discussions](https://github.com/pingcap/ossinsight/discussions)：You can ask a question or discuss here.
+* [GitHub Discussions](https://github.com/pingcap/ossinsight/discussions): You can ask a question or discuss here.
 * [@OSS Insight](https://twitter.com/OSSInsight) on Twitter
 * [mail](mailto:ossinsight@pingcap.com):If you want to analyze more, please [contact us](mailto:ossinsight@pingcap.com) ✉️
 

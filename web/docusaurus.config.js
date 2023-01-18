@@ -37,6 +37,12 @@ const config = {
   organizationName: 'pingcap',
   projectName: 'ossinsight',
 
+  customFields: {
+    auth0_domain: process.env.AUTH0_DOMAIN || '',
+    auth0_client_id: process.env.AUTH0_CLIENT_ID || '',
+    tidbcloud_host: process.env.TIDBCLOUD_HOST || process.env.NODE_ENV === 'production' ? 'tidbcloud.com' : 'staging.tidbcloud.com',
+  },
+
   // Even if you don't use internalization, you can use this field to set useful
   // metadata like html lang. For example, if your site is Chinese, you may want
   // to replace "en" with "zh-Hans".
@@ -80,7 +86,9 @@ const config = {
     [
       path.resolve(__dirname, 'plugins/experimental-features'),
       {
-        defaultEnabled: []
+        defaultEnabled: [
+          'ai-playground',
+        ]
       }
     ],
     [
@@ -176,6 +184,7 @@ const config = {
             require.resolve('animate.css/source/_vars.css'),
             require.resolve('animate.css/source/_base.css'),
             require.resolve('animate.css/source/bouncing_entrances/bounceInRight.css'),
+            require.resolve('animate.css/source/attention_seekers/tada.css'),
             require.resolve('./src/css/custom.css'),
             require.resolve('react-awesome-animated-number/dist/index.css'),
           ],
@@ -200,6 +209,7 @@ const config = {
         disableSwitch: true,
         respectPrefersColorScheme: false,
       },
+      /*
       announcementBar: {
         id: 'announcement-20221101',
         content:
@@ -208,6 +218,7 @@ const config = {
         textColor: '#ffffff',
         isCloseable: true,
       },
+      */
       docs: {
         sidebar: {
           hideable: true,
@@ -221,9 +232,9 @@ const config = {
         style: 'dark',
         items: [
           {
-            to: '/2022',
+            to: '/explore/',
             position: 'left',
-            label: '📜 GitHub 2022',
+            html: '<span id="nav-data-explorer"><span class="nav-explore-icon"></span> Data Explorer</span>'
           },
           {
             to: '/collections',
@@ -252,7 +263,6 @@ const config = {
               {label: '└─ NFT Insight', to: '/docs/workshop/nft-insight'},
               {label: '└─ Twitter Insight - not ready', to: '/docs/workshop/twitter-insight'},
               {label: '└─ Stack Overflow Insight - not ready', to: '/docs/workshop/stackoverflow-insight'},
-              {label: '└─ Cryptocurrency Insight - not ready', to: '/docs/workshop/cryptocurrency-insight'},
             ]
           }, */
           /*

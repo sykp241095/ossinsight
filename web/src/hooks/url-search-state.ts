@@ -1,5 +1,6 @@
-import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react';
-import { isNullish, notNullish, Nullish } from '@site/src/utils/value';
+import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from 'react';
+import { isNonemptyString, isNullish, notFalsy, notNullish, Nullish } from '@site/src/utils/value';
+import { useHistory, useLocation } from '@docusaurus/router';
 
 export interface UseUrlSearchStateProps<T> {
   defaultValue: T | (() => T);
@@ -7,10 +8,10 @@ export interface UseUrlSearchStateProps<T> {
   deserialize: (string: string) => T;
 }
 
-export type UseUrlSearchStateHook = <T> (key: string, props: UseUrlSearchStateProps<T>) => [T, Dispatch<SetStateAction<T>>];
+export type UseUrlSearchStateHook = <T> (key: string, props: UseUrlSearchStateProps<T>, push?: boolean) => [T, Dispatch<SetStateAction<T>>];
 
 function useUrlSearchStateSSR<T> (key: string, { defaultValue }: UseUrlSearchStateProps<T>): [T, Dispatch<SetStateAction<T>>] {
-  return useState<T>(defaultValue);
+  return [...useState<T>(defaultValue)];
 }
 
 function useUrlSearchStateCSR<T> (key: string, {
@@ -18,6 +19,8 @@ function useUrlSearchStateCSR<T> (key: string, {
   deserialize,
   serialize,
 }: UseUrlSearchStateProps<T>, push: boolean = false): [T, Dispatch<SetStateAction<T>>] {
+  const history = useHistory();
+  const location = useLocation();
   const initialValue = useMemo(() => {
     const usp = new URLSearchParams(location.search);
     const v = usp.get(key);
@@ -28,12 +31,29 @@ function useUrlSearchStateCSR<T> (key: string, {
     }
   }, []);
   const [value, setValue] = useState<T>(initialValue);
+  const historyChangeRef = useRef(true);
+  const internalChange = useRef(false);
+
   useEffect(() => {
+    historyChangeRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    if (internalChange.current) {
+      internalChange.current = false;
+      return;
+    }
     const sv = serialize(value);
     const usp = new URLSearchParams(location.search);
     if (isNullish(sv)) {
+      if (!usp.has(key)) {
+        return;
+      }
       usp.delete(key);
     } else {
+      if (usp.get(key) === sv) {
+        return;
+      }
       usp.set(key, sv);
     }
     const uspStr = usp.toString();
@@ -41,11 +61,22 @@ function useUrlSearchStateCSR<T> (key: string, {
     const hash = location.hash ? `${location.hash}` : '';
     const url = location.pathname + search + hash;
     if (push) {
-      window.history.pushState(null, '', url);
+      history.push(url);
     } else {
+      history.replace(url);
       window.history.replaceState(null, '', url);
     }
   }, [value]);
+
+  useEffect(() => {
+    const usp = new URLSearchParams(location.search);
+    const value = usp.get(key);
+    if (notNullish(value)) {
+      setValue(deserialize(value));
+    } else {
+      setValue(defaultValue);
+    }
+  }, [location]);
 
   return [value, setValue];
 }
@@ -59,5 +90,21 @@ export function stringParam (defaultValue?): UseUrlSearchStateProps<string> {
     defaultValue,
     serialize: s => s,
     deserialize: s => s,
+  };
+}
+
+export function nullableStringParam (defaultValue?: string): UseUrlSearchStateProps<string | undefined> {
+  return {
+    defaultValue,
+    serialize: value => isNonemptyString(value) ? value : undefined,
+    deserialize: value => isNonemptyString(value) ? value : undefined,
+  };
+}
+
+export function booleanParam (trueValue = 'true'): UseUrlSearchStateProps<boolean> {
+  return {
+    defaultValue: () => false,
+    serialize: value => notFalsy(value) ? trueValue : undefined,
+    deserialize: value => Boolean(value === trueValue),
   };
 }

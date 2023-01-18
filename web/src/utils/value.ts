@@ -32,12 +32,20 @@ export function isNonemptyString (v: unknown): v is string {
   return isString(v) && v !== '';
 }
 
+export function isBlankString (v: unknown): v is string {
+  return isString(v) && v.trim() === '';
+}
+
 export function isPositiveNumber (v: unknown): v is number {
   return isNumber(v) && v > 0;
 }
 
 export function isFiniteNumber (v: unknown): v is number {
   return isNumber(v) && isFinite(v);
+}
+
+export function isBoolean (v: unknown): v is boolean {
+  return typeof v === 'boolean';
 }
 
 export function coalescePositiveNumber (a: number | Nullish, fallback: number): number {
@@ -76,4 +84,8 @@ export function nonEmptyArray<T> (value: T[] | Nullish): value is T[] {
   } else {
     return false;
   }
+}
+
+export function allSatisfy<T, Condition extends (value: T) => boolean> (arr: T[], condition: Condition): boolean {
+  return arr.reduce((previousValue, currentValue) => previousValue && condition(currentValue), true);
 }

@@ -5,6 +5,7 @@ import { QueryRunner } from "../../core/runner/query/QueryRunner";
 import fastifyWebsocket from "fastify-socket.io";
 import { pino } from "pino";
 import { toCompactFormat } from "../../utils/compact";
+import {MySQLPromisePool} from "@fastify/mysql";
 
 interface WsQueryRequest {
   qid?: string | number;
@@ -54,8 +55,7 @@ const root: FastifyPluginAsync = async (app, opts): Promise<void> => {
     app.io.on("connection", (socket) => {
       app.log.info("io connected");
       const log = app.log as pino.Logger;
-      socketServerRoutes(log, socket, app.io, app.queryRunner);
-
+      socketServerRoutes(log, socket, app.io, app.queryRunner, app.mysql);
       socket.on("disconnect", () => {
         app.log.info("io disconnected");
       });
@@ -90,7 +90,8 @@ export function socketServerRoutes(
   log: pino.Logger,
   socket: Socket,
   io: Server,
-  queryRunner: QueryRunner
+  queryRunner: QueryRunner,
+  mysql: MySQLPromisePool
 ) {
   /*
    * This ws entrypoint provide a method to visit HTTP /q/:query and /q/explain/:query equally.

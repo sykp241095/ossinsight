@@ -13,6 +13,10 @@ export function isAxiosError (e: unknown): e is AxiosError {
   }
 }
 
+export function isAxiosHttpStatusError (e: unknown, status: number): e is AxiosError {
+  return isAxiosError(e) && notNullish(e.response) && e.response.status === status;
+}
+
 export function hasMessage (e: unknown): e is HaveMessage {
   return e != null && typeof e === 'object' && typeof (e as HaveMessage)?.message === 'string';
 }
@@ -34,6 +38,19 @@ export function getErrorMessage (e: unknown): string {
   } else {
     return String(e ?? 'no error message.');
   }
+}
+
+export function getAxiosErrorPayload (e: AxiosError): unknown {
+  if (notNullish(e.response)) {
+    if (notNullish(e.response.data)) {
+      if (notNullish(e.response.data.payload)) {
+        return e.response.data.payload;
+      } else {
+        return e.response.data;
+      }
+    }
+  }
+  return undefined;
 }
 
 export function getOptionalErrorMessage (e: unknown): string | undefined {

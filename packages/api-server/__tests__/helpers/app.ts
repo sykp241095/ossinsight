@@ -8,6 +8,7 @@ import * as path from 'path';
 import io from 'socket.io-client';
 import { OutgoingHttpHeaders } from 'http';
 import { register } from 'prom-client';
+import {getTestRedis} from "./redis";
 
 type Schema = (typeof APIServerEnvSchema)['properties']
 type Env = {
@@ -19,6 +20,7 @@ let appPromise: Promise<StartedApp> | undefined;
 
 async function createApp () {
   const db = getTestDatabase();
+  const redis = getTestRedis();
 
   // Override process env
   const playgroundDatabaseURL = db.url()
@@ -28,6 +30,7 @@ async function createApp () {
     CONFIGS_PATH: path.resolve(__dirname, '../../../../configs'),
     ADMIN_EMAIL: 'admin@testdomain.com',
     DATABASE_URL: db.url(),
+    REDIS_URL: redis.url(),
     // This should be used for oauth redirect only
     API_BASE_URL: 'http://testdomain.com/',
     ENABLE_CACHE: false,
@@ -39,12 +42,18 @@ async function createApp () {
     PLAYGROUND_DATABASE_URL: playgroundDatabaseURL,
     PLAYGROUND_DAILY_QUESTIONS_LIMIT: 30,
     PLAYGROUND_TRUSTED_GITHUB_LOGINS: 'testuser',
+    EXPLORER_USER_MAX_QUESTIONS_PER_HOUR: 3,
+    EXPLORER_USER_MAX_QUESTIONS_ON_GOING: 1,
+    EXPLORER_GENERATE_SQL_CACHE_TTL: 60 * 60 * 24 * 7,
+    EXPLORER_QUERY_SQL_CACHE_TTL: 60 * 60 * 24,
     JWT_SECRET: 'fake',
     JWT_COOKIE_NAME: 'ossinsight_test_t',
     JWT_COOKIE_DOMAIN: 'http://testdomain.com/',
     JWT_COOKIE_SECURE: 'false',
     JWT_COOKIE_SAME_SITE: 'false',
     OPENAI_API_KEY: 'fake',
+    AUTH0_DOMAIN: 'auth0',
+    AUTH0_SECRET: 'auth0',
   };
 
   Object.assign(process.env, env);

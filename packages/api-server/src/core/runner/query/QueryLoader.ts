@@ -3,7 +3,7 @@ import { QuerySchema } from "../../../types/query.schema";
 import { join } from "path";
 import pino from "pino";
 import { readFile } from "fs/promises";
-import {measure, readConfigTimer} from "../../../plugins/metrics/metrics";
+import {measure, readConfigTimer} from "../../../plugins/metrics";
 
 export const QUERY_TEMPLATE_SQL_FILENAME = 'template.sql';
 export const QUERY_CONFIG_FILENAME = 'params.json';
@@ -23,7 +23,6 @@ export class QueryLoader {
         const queryDir = join(this.basePath, queryName);
         const templateFilePath = join(queryDir, QUERY_TEMPLATE_SQL_FILENAME);
         const queryConfigFilePath = join(queryDir, QUERY_CONFIG_FILENAME);
-
         
         let queryConfig, templateSQL;
         await measure(readConfigTimer.labels({ type: QUERY_CONFIG_FILENAME }), async () => {
