@@ -14,3 +14,9 @@ items:
   - zinclabs/zinc
   - manticoresoftware/manticoresearch
   - semi-technologies/weaviate
+  - mosuka/bayard
+  - qdrant/qdrant
+  - paradedb/paradedb
+  - apache/solr
+  - apache/lucene
+  

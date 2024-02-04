@@ -1,18 +1,23 @@
-import { FastifyJWTOptions } from "@fastify/jwt";
-import { FastifyOAuth2Options } from "@fastify/oauth2";
-import { TiDBQueryExecutor } from "../../core/executor/query-executor/TiDBQueryExecutor";
+import {Pool} from "mysql2/promise";
+import {pino} from "pino";
+import {TiDBQueryExecutor} from "../../core/executor/query-executor/TiDBQueryExecutor";
 import fp from "fastify-plugin";
 
-export default fp<FastifyOAuth2Options & FastifyJWTOptions>(async (app) => {
-    app.decorate('tidbQueryExecutor', new TiDBQueryExecutor({
-        uri: app.config.DATABASE_URL
-    }, true));
+export default fp(async (app) => {
+  app.decorate('tidbQueryExecutor', new TiDBQueryExecutor(
+    app.mysql as unknown as Pool,
+    app.mysql.shadow as unknown as Pool,
+    app.log as pino.Logger
+  ));
 }, {
-    name: 'tidb-query-executor'
+  name: '@ossinsight/tidb-query-executor',
+  dependencies: [
+    '@ossinsight/tidb',
+  ]
 });
 
 declare module 'fastify' {
-    interface FastifyInstance {
-        tidbQueryExecutor: TiDBQueryExecutor;
-    }
+  interface FastifyInstance {
+    tidbQueryExecutor: TiDBQueryExecutor;
+  }
 }

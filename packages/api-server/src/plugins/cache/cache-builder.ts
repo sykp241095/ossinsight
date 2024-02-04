@@ -1,9 +1,7 @@
+import {Pool} from "mysql2/promise";
+import {pino} from "pino";
 import CacheBuilder from "../../core/cache/CacheBuilder";
-import { FastifyJWTOptions } from "@fastify/jwt";
-import { FastifyOAuth2Options } from "@fastify/oauth2";
 import fp from "fastify-plugin";
-import pino from "pino";
-import {ConnectionWrapper} from "../../core/db/connection-wrapper";
 
 declare module 'fastify' {
     interface FastifyInstance {
@@ -11,15 +9,19 @@ declare module 'fastify' {
     }
 }
 
-export default fp<FastifyOAuth2Options & FastifyJWTOptions>(async (fastify) => {
-    const log = fastify.log as pino.Logger;
-    const wrapper = await ConnectionWrapper.new({
-        uri: fastify.config.DATABASE_URL
-    });
-    fastify.decorate('cacheBuilder', new CacheBuilder(log, fastify.config.ENABLE_CACHE, wrapper));
+export default fp(async (app) => {
+    const cacheBuilder = new CacheBuilder(
+      app.log as pino.Logger,
+      app.config.ENABLE_CACHE,
+      app.mysql as unknown as Pool,
+      app.mysql.shadow as unknown as Pool,
+      app.config.QUERY_CACHE_KEY_PREFIX,
+    );
+    app.decorate('cacheBuilder', cacheBuilder);
 }, {
-    name: 'cache-builder',
+    name: '@ossinsight/cache-builder',
     dependencies: [
-        '@fastify/env'
+        '@fastify/env',
+        '@ossinsight/tidb',
     ],
 });

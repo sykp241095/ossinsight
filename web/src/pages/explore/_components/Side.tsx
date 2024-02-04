@@ -1,72 +1,42 @@
 import { RecommendedSuggestions } from '@site/src/pages/explore/_components/Suggestions';
-import { Box, Divider, IconButton, Stack, styled, Typography } from '@mui/material';
-import { ArrowForward, Cached } from '@mui/icons-material';
-import React, { useEffect, useState } from 'react';
+import { Divider, Grow, IconButton, styled, Typography } from '@mui/material';
+import { Cached } from '@mui/icons-material';
+import React from 'react';
+import Ads from '@site/src/pages/explore/_components/Ads';
 import Link from '@docusaurus/Link';
-import useQuestionManagement from '@site/src/pages/explore/_components/useQuestion';
-import Feedback from './Feedback';
-import { useMemoizedFn } from 'ahooks';
 
-export default function Side () {
-  const { question } = useQuestionManagement();
-  const [show, setShow] = useState(false);
-
-  useEffect(() => {
-    setShow(false);
-  }, [question?.id]);
-
-  const wrapHandleClick = useMemoizedFn((handle: () => void) => () => {
-    handle();
-    setShow(true);
-  });
-
+export default function Side ({ headerHeight = 0, showAds }: { headerHeight?: number, showAds: boolean }) {
   return (
-    <SideRoot>
+    <SideRoot headerHeight={headerHeight}>
       <RecommendedSuggestions
         variant="text" n={4}
         title={(reload, loading) => (
           <Typography variant="h3" mb={0} fontSize={16}>
-            💡 Get inspired
-            <IconButton onClick={wrapHandleClick(reload)} disabled={loading}>
+            💡 Popular questions
+            <IconButton onClick={reload} disabled={loading}>
               <Cached fontSize="inherit" />
             </IconButton>
           </Typography>
         )}
       />
-      <Divider orientation="horizontal" sx={{ my: 2 }} />
-      <Stack direction='row' alignItems='center' flexWrap='wrap' spacing={0.5} fontSize={14} lineHeight={2}>
-        <span>Do you like the result?</span>
-        <Feedback />
-      </Stack>
-      {show && (
-        <>
-          <Box>
-            <ColoredLink to="/blog/chat2query-tutorials">
-              Get hands-on with your data <ArrowForward color="inherit" />
-            </ColoredLink>
-          </Box>
-        </>
+      <StyledLink to="/explore/">&gt; See more</StyledLink>
+      {showAds && (
+        <Grow in={showAds}>
+          <div>
+            <Divider orientation="horizontal" sx={{ my: 2 }} />
+            <Ads size="small" utmContent='result_right' />
+          </div>
+        </Grow>
       )}
     </SideRoot>
   );
 }
 
-const SideRoot = styled('div')`
+const SideRoot = styled('div', { shouldForwardProp: propName => propName !== 'headerHeight' })<{ headerHeight: number }>`
   position: sticky;
-  top: 92px;
+  top: ${({ headerHeight }) => 92 + 64 + headerHeight}px;
 `;
 
-const ColoredLink = styled(Link)`
-  display: inline-flex;
-  align-items: center;
+const StyledLink = styled(Link)`
   font-size: 14px;
-  background: linear-gradient(90deg, #BAC1FD 0%, #DAC4FF 106.06%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-fill-color: transparent;
-
-  &, &:hover, &:visited, &:active {
-    color: #DAC4FF;
-  }
 `;

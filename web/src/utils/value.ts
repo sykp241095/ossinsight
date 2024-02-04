@@ -28,8 +28,13 @@ export function isString (v: unknown): v is string {
   return typeof v === 'string';
 }
 
+// TODO: rename
 export function isNonemptyString (v: unknown): v is string {
   return isString(v) && v !== '';
+}
+
+export function notBlankString (v: unknown): v is string {
+  return isString(v) && v.trim() !== '';
 }
 
 export function isBlankString (v: unknown): v is string {
@@ -62,6 +67,17 @@ export function coalesceFalsy<T, P> (value: T, fallback: P): T extends Falsy ? P
 
 export function coalesceNullish<T, P> (value: T, fallback: P): T extends Nullish ? P : T {
   return (isNullish(value) ? fallback : value) as never;
+}
+
+export function coalesce<T, L> (condition: (v: T) => boolean, v0: T | undefined, fallback: L): L extends undefined ? T | undefined : T;
+export function coalesce<T, L> (condition: (v: T) => boolean, v0: T | undefined, v1: T | undefined, fallback: L): L extends undefined ? T | undefined : T;
+export function coalesce (condition: (v: any) => boolean, ...args: any[]): any {
+  for (const arg of args.slice(0, args.length - 1)) {
+    if (condition(arg)) {
+      return arg;
+    }
+  }
+  return args[args.length - 1];
 }
 
 export function isEmptyArray<T> (value: T[] | Nullish): boolean {

@@ -1,37 +1,80 @@
-import { FINAL_PHASES, QuestionLoadingPhase, QuestionManagementContext, useQuestionManagementValues } from '@site/src/pages/explore/_components/useQuestion';
+import { isEmptyResult, QuestionLoadingPhase, QuestionManagementContext, useQuestionManagementValues } from '@site/src/pages/explore/_components/useQuestion';
 import useUrlSearchState, { nullableStringParam } from '@site/src/hooks/url-search-state';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { SetStateAction, useEffect, useMemo, useState } from 'react';
 import { isBlankString, isNullish, notNullish } from '@site/src/utils/value';
-import { Box, styled, useEventCallback } from '@mui/material';
+import { useEventCallback } from '@mui/material';
 import { ExploreContext } from '@site/src/pages/explore/_components/context';
 import { Decorators } from '@site/src/pages/explore/_components/Decorators';
 import Layout from '@site/src/pages/explore/_components/Layout';
 import Header from '@site/src/pages/explore/_components/Header';
 import ExploreSearch from '@site/src/pages/explore/_components/Search';
-import SwitchLayout from '@site/src/pages/explore/_components/SwitchLayout';
-import Execution from '@site/src/pages/explore/_components/Execution';
-import Recommends from '@site/src/pages/explore/_components/Recommends';
 import Faq from '@site/src/pages/explore/_components/Faq';
 import Side from '@site/src/pages/explore/_components/Side';
-import PoweredBy from '@site/src/pages/explore/_components/PoweredBy';
-import Link from '@docusaurus/Link';
-import { ArrowRightAlt } from '@mui/icons-material';
-import Tips, { TipsRef } from '@site/src/pages/explore/_components/Tips';
+import ExploreMain from '@site/src/pages/explore/_components/ExploreMain';
 
 export default function Questions () {
-  const { question, loading, load, error, phase, reset, create } = useQuestionManagementValues({ pollInterval: 2000 });
-  const [questionId, setQuestionId] = useUrlSearchState('id', nullableStringParam(), true);
-  const [value, setValue] = useState('');
-  const tipsRef = useRef<TipsRef>(null);
+  const [search, setSearch] = useState('');
+  const { questionId, handleClear, handleAction, handleSelect, handleSelectId, questionValues } = useAutoRouteQuestion([search, setSearch]);
+  const { question, loading, phase, isResultPending } = questionValues;
 
-  const isPending = !FINAL_PHASES.has(phase);
-  const disableAction = isPending || isBlankString(value);
-  const hideExecution = isNullish(question?.id) && !loading && phase !== QuestionLoadingPhase.CREATE_FAILED;
-  const hasResult = (question?.result?.rows.length ?? 0) > 0;
+  // computed status
+  const disableAction = isResultPending || isBlankString(search);
+  const disableClear = search === '';
+  const hideExecution = isNullish(question?.id) && isNullish(questionId) && !loading && phase !== QuestionLoadingPhase.CREATE_FAILED;
+  const showSide = !hideExecution;
+  const showSideAds = useMemo(() => {
+    if (phase === QuestionLoadingPhase.CREATE_FAILED ||
+      phase === QuestionLoadingPhase.EXECUTE_FAILED ||
+      phase === QuestionLoadingPhase.VALIDATE_SQL_FAILED ||
+      phase === QuestionLoadingPhase.GENERATE_SQL_FAILED
+    ) {
+      return false;
+    }
+    if (notNullish(question)) {
+      return !isEmptyResult(question);
+    }
+    return true;
+  }, [phase, question]);
+
+  return (
+    <QuestionManagementContext.Provider value={questionValues}>
+      <ExploreContext.Provider value={{ search, handleSelect, handleSelectId }}>
+        <Decorators />
+        <Layout
+          showSide={showSide}
+          showHeader={hideExecution}
+          header={<Header />}
+          side={(headerHeight) => <Side headerHeight={headerHeight} showAds={showSideAds} />}
+        >
+          <ExploreSearch
+            value={search}
+            onChange={setSearch}
+            onAction={handleAction}
+            disableInput={isResultPending}
+            disableClear={disableClear}
+            disableAction={disableAction}
+            onClear={handleClear}
+            clearState={isResultPending ? 'stop' : undefined}
+          />
+          <ExploreMain
+            state={hideExecution ? 'recommend' : 'execution'}
+          />
+        </Layout>
+        <Faq />
+      </ExploreContext.Provider>
+    </QuestionManagementContext.Provider>
+  );
+}
+
+function useAutoRouteQuestion ([search, setSearch]: [search: string, setSearch: (search: SetStateAction<string>) => void]) {
+  const questionValues = useQuestionManagementValues({ pollInterval: 2000 });
+  const [questionId, setQuestionId] = useUrlSearchState('id', nullableStringParam(), true);
+
+  const { question, loading, load, reset, create, isResultPending } = questionValues;
 
   useEffect(() => {
     if (notNullish(question)) {
-      setValue(question.title);
+      setSearch(question.title);
     }
   }, [question?.title]);
 
@@ -51,79 +94,37 @@ export default function Questions () {
     }
   }, [loading, question?.id]);
 
-  const handleAction = useEventCallback(() => {
-    if (isPending) {
+  const handleAction = useEventCallback((ignoreCache: boolean) => {
+    if (isResultPending) {
       return;
     }
-    create(value);
+    create(search, ignoreCache);
   });
 
   const handleClear = useEventCallback(() => {
     reset();
-    setValue('');
+    setSearch('');
     setQuestionId(undefined);
   });
 
   const handleSelect = useEventCallback((title: string) => {
-    setValue(title);
-    create(title);
+    setSearch(title);
+    create(title, false);
   });
 
   const handleSelectId = useEventCallback((id: string, title?: string) => {
     if (questionId !== id) {
-      setValue(title ?? '');
+      setSearch(title ?? '');
       load(id);
     }
   });
 
-  const showTips = useEventCallback(() => {
-    tipsRef.current?.show();
-  });
-
-  const showSide = !hideExecution && (phase === QuestionLoadingPhase.READY || phase === QuestionLoadingPhase.SUMMARIZING) && hasResult;
-
-  return (
-    <QuestionManagementContext.Provider value={{ phase, question, loading, error, create, load, reset }}>
-      <ExploreContext.Provider value={{ search: value, handleSelect, handleSelectId, showTips }}>
-        <Decorators />
-        <Layout
-          showSide={showSide}
-          showHeader={hideExecution}
-          showFooter={hideExecution}
-          header={<Header />}
-          side={<Side />}
-          footer={(
-            <Box mt={2}>
-              <PoweredBy align="center" />
-              <StyledLink to="/blog/chat2query-tutorials" target="_blank">
-                🧐 GitHub data is just the beginning. Uncover hidden insights in any data!
-                <ArrowRightAlt fontSize="inherit" sx={{ verticalAlign: 'text-bottom', ml: 0.5 }} />
-              </StyledLink>
-            </Box>
-          )}
-        >
-          <ExploreSearch value={value} onChange={setValue} onAction={handleAction} disableInput={isPending} disableClear={value === ''} disableAction={disableAction} onClear={handleClear} clearState={isPending ? 'stop' : undefined} />
-          <SwitchLayout state={hideExecution ? 'recommend' : 'execution'} direction={hideExecution ? 'down' : 'up'}>
-            <Box key="execution" sx={{ mt: 1.5 }}>
-              <Execution search={value} />
-            </Box>
-            <Box key="recommend" sx={{ mt: 4 }}>
-              <Recommends />
-            </Box>
-          </SwitchLayout>
-        </Layout>
-        <Faq />
-        <Tips ref={tipsRef} />
-      </ExploreContext.Provider>
-    </QuestionManagementContext.Provider>
-  );
+  return {
+    questionValues,
+    handleClear,
+    handleAction,
+    handleSelect,
+    handleSelectId,
+    questionId,
+  };
 }
-
-const StyledLink = styled(Link)`
-  display: block;
-  text-align: center;
-  color: white !important;
-  text-decoration: none !important;
-  margin-top: 20px;
-  font-size: 16px;
-`;

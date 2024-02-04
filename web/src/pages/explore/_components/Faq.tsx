@@ -3,11 +3,12 @@ import { Container, styled, Typography } from '@mui/material';
 import ExploreSteps from '@site/src/pages/explore/_components/ExploreSteps';
 import { GitHub, Twitter } from '@mui/icons-material';
 import Link from '@docusaurus/Link';
+import TiDBCloudLink from '@site/src/components/TiDBCloudLink';
 
 export default function Faq () {
   return (
     <Container component="section" maxWidth="md" id="data-explorer-faq" sx={{ py: 8 }}>
-      <Typography variant="h2" textAlign="center">FAQ</Typography>
+      <Typography variant="h2" textAlign="center" mb={8}>FAQ</Typography>
       {qa.map(({ q, a, id }, i) => (
         <QAItem key={i} id={id}>
           <Q>{q}</Q>
@@ -39,27 +40,35 @@ const qa: QA[] = [
     a: <ExploreSteps steps={steps} />,
   },
   {
-    q: 'What are the limitations of Data Explorer?',
+    q: 'Can I use the AI-powered feature with my own dataset?',
     a: (
       <>
-       <ol>
-         <li>AI is still a work in progress with limitations
-           <br />
-         Its limitations include:
-          <ul>
-            <li>A lack of context and knowledge of the specific database structure</li>
-            <li>A lack of domain knowledgestructure</li>
-            <li>Inability to produce the most efficient SQL statement for large and complex queries</li>
-            <li>Sometimes service instability</li>
-          </ul>
+      Yes! We integrated the capabilities of Text2SQL into <TiDBCloudLink>Chat2Query</TiDBCloudLink>, an AI-powered SQL generator in <TiDBCloudLink>TiDB Cloud</TiDBCloudLink>. If you want to explore any other dataset, Chat2Query is an excellent choice.
+      </>
+    ),
+  },
+  {
+    q: 'What are the limitations of GitHub Data Explorer?',
+    a: (
+      <>
+        <ol>
+          <li>AI is still a work in progress with limitations
+            <br />
+            Its limitations include:
+            <ul>
+              <li>A lack of context and knowledge of the specific database structure</li>
+              <li>A lack of domain knowledgestructure</li>
+              <li>Inability to produce the most efficient SQL statement for large and complex queries</li>
+              <li>Sometimes service instability</li>
+            </ul>
+            <br />
+            To help AI understand your query intention, please use clear, specific phrases in your question. Check out our question optimization tips.
+            We&apos;re constantly working on improving and optimizing it, so any feedback you have is greatly appreciated. Thanks for using!
+          </li>
           <br />
-          To help AI understand your query intention, please use clear, specific phrases in your question. Check out our question optimization tips.
-We&apos;re constantly working on improving and optimizing it, so any feedback you have is greatly appreciated. Thanks for using!
-         </li>
-         <br />
-         <li>The dataset itself is a limitation for our tool</li>
-         All the data we use on this website is sourced from GH Archive, a non-profit project that records and archives all GitHub event data since 2011 (public data only). If a question falls outside of the scope of the available data, it may be difficult for our tool to provide a satisfactory answer.
-       </ol>
+          <li>The dataset itself is a limitation for our tool</li>
+          All the data we use on this website is sourced from GH Archive, a non-profit project that records and archives all GitHub event data since 2011 (public data only). If a question falls outside of the scope of the available data, it may be difficult for our tool to provide a satisfactory answer.
+        </ol>
       </>
     ),
   },
@@ -100,7 +109,7 @@ We&apos;re constantly working on improving and optimizing it, so any feedback yo
     q: 'Why did it fail to generate a chart?',
     a: (
       <>
-       Potential reasons:
+        Potential reasons:
         <ul>
           <li>The SQL query was incorrect or could not be generated, so the answer could not be found in the database, and the chart could not be generated.</li>
           <li>The answer was found, but the AI did not choose the correct chart template, so the chart could not be generated.</li>
@@ -109,14 +118,7 @@ We&apos;re constantly working on improving and optimizing it, so any feedback yo
       </>
     ),
   }, {
-    q: 'Can I use the AI-powered feature with my own dataset?',
-    a: (
-      <>
-        Yes! Even if you&apos;re not a GitHub expert, you can follow our <Link to='/blog/chat2query-tutorials' target='_blank'>tutorial</Link> to play around with any dataset at <b>NO COST</b>. Just keep in mind that we take privacy seriously. Our model only needs access to your database schema, not any actual data about your customers.
-      </>
-    ),
-  }, {
-    q: 'What technology is Data Explorer built on?',
+    q: 'What technology is GitHub Data Explorer built on?',
     a: (
       <>
         Its major technologies include:
@@ -125,7 +127,7 @@ We&apos;re constantly working on improving and optimizing it, so any feedback yo
             <br />
             GH Archive collects and archives all GitHub data since 2011 and updates it hourly. <b>By combining the GH Archive data and the GitHub event API, we can gain streaming, real-time data updates.</b>
           </li>
-          <li>One database for all workloads:  <Link href='https://www.pingcap.com/tidb-cloud/?utm_source=ossinsight&utm_medium=referral&utm_campaign=dataexplore' target='_blank' rel='noopener'> TiDB Cloud</Link>
+          <li>One database for all workloads:  <TiDBCloudLink>TiDB Cloud</TiDBCloudLink>
           <br />
           Facing continuously growing large-volume data (currently 5+ billion GitHub events), we need a database that can:
           <ul>
@@ -133,10 +135,10 @@ We&apos;re constantly working on improving and optimizing it, so any feedback yo
             <li>Handle complex analytical queries</li>
             <li>Serve online traffic</li>
           </ul>
-          <Link href='https://docs.pingcap.com/tidb/stable/overview/?utm_source=ossinsight&utm_medium=referral&utm_campaign=dataexplore' target='_blank' rel='noopener'> TiDB </Link> is an ideal solution. TiDB Cloud is its fully managed cloud Database as a Service. It lets users launch TiDB in seconds and offers the pay-as-you-go pricing model. Therefore, we choose TiDB Cloud as our backend database.
+          <Link href='https://docs.pingcap.com/tidb/stable/overview/?utm_source=ossinsight&utm_medium=referral&utm_campaign=chat2query_202301' target='_blank' rel='noopener'> TiDB </Link> is an ideal solution. TiDB Cloud is its fully managed cloud Database as a Service. It lets users launch TiDB in seconds and offers the pay-as-you-go pricing model. Therefore, <b>we choose TiDB Cloud as our backend database.</b>
           </li>
           <li>AI engine: OpenAI</li>
-          To enable users without SQL knowledge to query with this tool, <b>we use OpenAI to translate the natural language to SQL.</b>
+          To enable users without SQL knowledge to query with this tool, <b>we use ChatGPT API to translate the natural language to SQL.</b>
         </ul>
       </>
     ),
@@ -145,6 +147,7 @@ We&apos;re constantly working on improving and optimizing it, so any feedback yo
 
 const QAItem = styled('div')`
   scroll-margin: 100px;
+
   &:not(:first-of-type) {
     margin-top: 48px;
   }

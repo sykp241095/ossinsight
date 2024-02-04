@@ -9,3 +9,6 @@ items:
   - tapdata/tapdata
   - airbytehq/airbyte
   - ververica/flink-cdc-connectors
+  - apache/inlong
+  - bytedance/bitsail
+  - cloudquery/cloudquery

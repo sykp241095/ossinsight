@@ -1,6 +1,6 @@
 import {DateTime} from "luxon";
 import {Field} from "../../../core/executor/query-executor/QueryExecutor";
-import {AnswerSummary, RecommendedChart} from "../bot-service/types";
+import {Answer, AnswerSummary, RecommendedChart} from "../bot-service/types";
 
 export enum QuestionQueueNames {
     High = "explorer_high_concurrent_queue",
@@ -13,15 +13,24 @@ export interface Question {
   userId: number;
   status: QuestionStatus;
   title: string;
+  revisedTitle?: string;
+  sqlCanAnswer?: boolean;
+  notClear?: string;
+  assumption?: string;
+  combinedTitle?: string;
   querySQL?: string;
   queryHash?: string;
+  plan?: Record<string, string>[] | null;
   engines?: string[];
   queueName?: QuestionQueueNames;
   queueJobId?: string | null;
   recommendedQuestions?: string[];
   result?: QuestionSQLResult;
-  chart?: RecommendedChart;
+  chart?: RecommendedChart | null;
+  answer?: Answer | null;
   answerSummary?: AnswerSummary;
+  batchJobId: string | null;
+  needReview: boolean;
   recommended: boolean;
   createdAt: DateTime;
   requestedAt?: DateTime | null;
@@ -29,13 +38,15 @@ export interface Question {
   finishedAt?: DateTime | null;
   spent?: number | null;
   error?: string | null;
+  errorType?: QuestionFeedbackType | null;
   hitCache: boolean;
   preceding: number;
+  [key: string]: any
 }
 
 export interface QuestionSQLResult {
   fields: Field[];
-  rows: Record<string, any>[];
+  rows: any[];
 }
 
 export interface QuestionQueryResult {
@@ -87,12 +98,15 @@ export interface QuestionFeedback {
 export enum QuestionFeedbackType {
   AnswerSatisfied = "answer-satisfied",
   AnswerUnsatisfied = "answer-unsatisfied",
+  ErrorSQLCanNotAnswer = "error-sql-can-not-answer",
   ErrorAnswerGenerate = "error-answer-generate",
   ErrorAnswerParse = "error-answer-parse",
   ErrorValidateSQL = "error-validate-sql",
   ErrorValidateChart = "error-validate-chart",
+  ErrorQueryExecute = "error-query-execute",
   ErrorQueryTimeout = "error-query-timeout",
   ErrorEmptyResult = "error-empty-result",
   ErrorSummaryGenerate = "error-summary-generate",
   ErrorUnknown = "error-unknown",
+  ErrorQuestionIsTooLong = "error-question-too-long",
 }

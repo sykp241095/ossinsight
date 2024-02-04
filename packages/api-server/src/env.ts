@@ -1,8 +1,10 @@
 import { resolve } from "path";
 
+export const DEFAULT_EXPLORER_GENERATE_ANSWER_PROMPT_NAME = 'explorer-generate-answer';
+
 export const APIServerEnvSchema = {
   type: 'object',
-  required: [ 'DATABASE_URL', 'GITHUB_ACCESS_TOKENS' ],
+  required: [ 'DATABASE_URL', 'REDIS_URL', 'GITHUB_ACCESS_TOKENS' ],
   properties: {
     CONFIGS_PATH: {
       type: 'string',
@@ -13,6 +15,10 @@ export const APIServerEnvSchema = {
       default: 'ossinsight@pingcap.com'
     },
     DATABASE_URL: {
+      type: 'string',
+      default: 'mysql://root@localhost:4000/gharchive_dev?timezone=Z&decimalNumbers=true'
+    },
+    SHADOW_DATABASE_URL: {
       type: 'string'
     },
     REDIS_URL: {
@@ -22,19 +28,17 @@ export const APIServerEnvSchema = {
     API_BASE_URL: {
       type: 'string'
     },
-    QUEUE_LIMIT: {
-      type: 'number',
-      default: 10000
-    },
-    CONNECTION_LIMIT: {
-      type: 'number',
-      default: 100
-    },
     ENABLE_CACHE: {
       type: 'boolean',
-      default: false
+      default: true
+    },
+    QUERY_CACHE_KEY_PREFIX: {
+      type: 'string',
     },
     PLAYGROUND_DATABASE_URL: {
+      type: 'string',
+    },
+    PLAYGROUND_SHADOW_DATABASE_URL: {
       type: 'string',
     },
     PLAYGROUND_DAILY_QUESTIONS_LIMIT: {
@@ -45,6 +49,10 @@ export const APIServerEnvSchema = {
       type: 'string',
       separator: ',',
       default: ''
+    },
+    EXPLORER_GENERATE_ANSWER_PROMPT_NAME: {
+      type: 'string',
+      default: DEFAULT_EXPLORER_GENERATE_ANSWER_PROMPT_NAME,
     },
     EXPLORER_USER_MAX_QUESTIONS_PER_HOUR: {
       type: 'number',
@@ -62,10 +70,11 @@ export const APIServerEnvSchema = {
       type: 'number',
       default: 60 * 60 * 24
     },
-    GITHUB_OAUTH_CLIENT_ID: {
-      type: 'string'
+    EXPLORER_OUTPUT_ANSWER_IN_STREAM: {
+      type: 'boolean',
+      default: false
     },
-    GITHUB_OAUTH_CLIENT_SECRET: {
+    EMBEDDING_SERVICE_ENDPOINT: {
       type: 'string'
     },
     GITHUB_ACCESS_TOKENS: {
@@ -75,29 +84,27 @@ export const APIServerEnvSchema = {
     OPENAI_API_KEY: {
       type: 'string'
     },
-    JWT_SECRET: {
-      type: 'string'
-    },
-    JWT_COOKIE_NAME: {
-      type: 'string'
-    },
-    JWT_COOKIE_DOMAIN: {
-      type: 'string'
-    },
-    JWT_COOKIE_SECURE: {
-      type: 'boolean'
-    },
-    JWT_COOKIE_SAME_SITE: {
-      type: 'boolean'
-    },
     AUTH0_DOMAIN: {
       type: 'string'
     },
     AUTH0_SECRET: {
       type: 'string'
+    },
+    TIDB_CLOUD_DATA_SERVICE_APP_ID: {
+      type: 'string'
+    },
+    TIDB_CLOUD_DATA_SERVICE_PUBLIC_KEY: {
+      type: 'string'
+    },
+    TIDB_CLOUD_DATA_SERVICE_PRIVATE_KEY: {
+      type: 'string'
+    },
+    PUBLIC_API_HOURLY_RATE_LIMIT: {
+      type: 'number',
+      default: 600
     }
-    // We need additional undocumented env
-    // - for playground:
-    //   - PLAYGROUND_SESSION_<KEY>=<VALUE>
   },
+  // We need additional undocumented env
+  // - for playground:
+  //   - PLAYGROUND_SESSION_<KEY>=<VALUE>
 };

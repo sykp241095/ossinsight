@@ -1,16 +1,24 @@
-import { Conn, Fields, QueryExecutor, Rows, Values } from "./QueryExecutor";
-import { Pool, PoolConnection, PoolOptions, QueryOptions } from "mysql2/promise";
-import {tidbQueryCounter, tidbQueryTimer, waitTidbConnectionTimer} from "../../../plugins/metrics";
-import {getPool} from "../../db/new";
+import {Connection, Pool, PoolConnection, QueryOptions} from "mysql2/promise";
+import pino from "pino";
+import {Counter, Histogram} from "prom-client";
+import {
+  shadowTidbQueryCounter,
+  shadowTidbQueryHistogram,
+  tidbQueryCounter,
+  tidbQueryHistogram,
+  shadowTidbWaitConnectionHistogram,
+  tidbWaitConnectionHistogram
+} from "../../../metrics";
+import {Conn, Fields, QueryExecutor, Rows, Values} from "./QueryExecutor";
 
 export class TiDBQueryExecutor implements QueryExecutor {
-  protected connections: Pool;
+  protected readonly logger: pino.Logger = this.pLogger.child({ module: 'tidb-query-executor' });
 
   constructor(
-    options: PoolOptions,
-    readonly enableMetrics: boolean = true
+    readonly pool: Pool,
+    readonly shadowPool?: Pool | null,
+    readonly pLogger: pino.Logger = pino()
   ) {
-    this.connections = getPool(options)
   }
 
   async execute<T extends Rows>(queryKey: string, sql: string): Promise<[T, Fields]>;
@@ -34,11 +42,32 @@ export class TiDBQueryExecutor implements QueryExecutor {
   async executeWithConn<T extends Rows>(conn: Conn, queryKey: string, sql: string, values: Values): Promise<[T, Fields]>;
   async executeWithConn<T extends Rows>(conn: Conn, queryKey: string, options: QueryOptions): Promise<[T, Fields]>;
   async executeWithConn<T extends Rows>(conn: Conn, queryKey: string, sqlOrOptions: string | QueryOptions, values?: Values): Promise<[T, Fields]> {
-    let end = () => {};
-    if (this.enableMetrics) {
-      end = tidbQueryTimer.startTimer();
-      tidbQueryCounter.labels({ query: queryKey, phase: 'start' }).inc();
+    this.executeWithConnShadow(queryKey, sqlOrOptions, values).then(null).catch((err) => {
+      this.logger.error(err, 'Failed to execute query with shadow conn.');
+    });
+
+    return this.executeWithConnInternal(tidbQueryHistogram, tidbQueryCounter, conn, queryKey, sqlOrOptions, values);
+  }
+
+  async executeWithConnShadow(queryKey: string, sqlOrOptions: string | QueryOptions, values?: Values) {
+    if (!this.shadowPool) {
+      return;
     }
+
+    const conn = await this.getConnectionInternal(this.shadowPool, shadowTidbWaitConnectionHistogram);
+    try {
+      await this.executeWithConnInternal(shadowTidbQueryHistogram, shadowTidbQueryCounter, conn, queryKey, sqlOrOptions, values);
+    } finally {
+      await conn.release();
+    }
+  }
+
+  async executeWithConnInternal<T extends Rows>(
+    timer: Histogram, counter: Counter, conn: Connection,
+    queryKey: string, sqlOrOptions: string | QueryOptions, values?: Values
+  ): Promise<[T, Fields]> {
+    const end = timer.startTimer({ query: queryKey });
+    counter.labels({ query: queryKey, phase: 'start' }).inc();
 
     if (queryKey.startsWith('explain:')) {
       if (typeof sqlOrOptions === 'string') {
@@ -56,48 +85,44 @@ export class TiDBQueryExecutor implements QueryExecutor {
         [rows, fields] = await conn.execute<T>(sqlOrOptions);
       }
 
-      end();
-      if (this.enableMetrics) {
-        tidbQueryCounter.labels({ query: queryKey, phase: 'success' }).inc();
-      }
+      counter.labels({ query: queryKey, phase: 'success' }).inc();
 
       return [
         rows,
-        fields.map((field) => {
+        fields.map((field: any) => {
           return {
             name: field.name,
-            columnType: field.type
+            columnType: field.columnType
           }
         })
       ];
     } catch (err) {
-      end();
-      if (this.enableMetrics) {
-        tidbQueryCounter.labels({ query: queryKey, phase: 'error' }).inc();
-      }
-
+      counter.labels({ query: queryKey, phase: 'error' }).inc();
       throw err;
+    } finally {
+      end();
+    }
+  }
+
+  async getConnectionInternal(pool: Pool, timer: Histogram): Promise<PoolConnection> {
+    const end = timer.startTimer();
+
+    try {
+      return await pool.getConnection();
+    } finally {
+      end();
     }
   }
 
   async getConnection(): Promise<PoolConnection> {
-    let end = () => {};
-    if (this.enableMetrics) {
-      end = waitTidbConnectionTimer.startTimer();
-    }
-
-    try {
-      const conn = await this.connections.getConnection();
-      end();
-      return conn;
-    } catch(err: any) {
-      end();
-      throw err;
-    }
+    return await this.getConnectionInternal(this.pool, tidbWaitConnectionHistogram);
   }
 
-  async destroy () {
-    await this.connections.end()
+  async getShadowConnection(): Promise<PoolConnection> {
+    if (!this.shadowPool) {
+      throw new Error('No shadow connection pool provided.');
+    }
+    return await this.getConnectionInternal(this.shadowPool, shadowTidbWaitConnectionHistogram);
   }
 
 }

@@ -1,25 +1,42 @@
 import { styled } from '@mui/material';
 import React from 'react';
 import Beta from './beta.svg';
+import { useTotalEvents } from '@site/src/components/RemoteCharts/hook';
+import useVisibility from '@site/src/hooks/visibility';
+import { useInView } from 'react-intersection-observer';
+import AnimatedNumber from 'react-awesome-animated-number';
 
 const Highlight = styled('b', { shouldForwardProp: propName => propName !== 'color' })<{ color: string }>`
   color: ${({ color }) => color};
 `;
 
-const title = 'Data Explorer';
-const subtitleFull = <>Explore <Highlight color='#9197D0'>5 billion</Highlight> GitHub data with no SQL or plotting skills. Reveal fascinating discoveries <Highlight color='#7D71C7'>RIGHT NOW</Highlight>!</>;
+const TidbCloudLogoImg = styled('img')`
+  vertical-align: middle;
+  position: relative;
+  top: -2px;
+`;
+
+const title = 'GitHub Data Explorer';
+const subtitleFull = (total: number) => <>Explore <Highlight color='#9197D0'><StyledAnimatedNumber value={total} hasComma size={18}/></Highlight> GitHub data with no SQL or plotting skills. Powered by <TidbCloudLogoImg height='16' alt='tidb cloud logo' src='/img/tidb-cloud-logo-t.svg' /></>;
 
 export default function () {
+  const visible = useVisibility();
+  const { inView, ref } = useInView();
+  const total = useTotalEvents(inView && visible);
+
   return (
     <HeaderContainer>
       <Title>
-        <TitleContent>
+        <StyledExploreIconContainer>
+          <span className="nav-explore-icon" />
+        </StyledExploreIconContainer>
+        <TitleContent >
           {title}
         </TitleContent>
         <StyledBeta />
       </Title>
-      <SubTitle>
-        {subtitleFull}
+      <SubTitle ref={ref}>
+        {subtitleFull(total)}
       </SubTitle>
     </HeaderContainer>
   );
@@ -27,6 +44,19 @@ export default function () {
 
 const StyledBeta = styled(Beta)`
   margin-left: 8px;
+`;
+
+const StyledExploreIconContainer = styled('span')`
+  display: inline-flex;
+  width: 36px;
+  height: 36px;
+  vertical-align: middle;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  > span {
+    scale: 2;
+  }
 `;
 
 const HeaderContainer = styled('div', { shouldForwardProp: propName => propName !== 'display' })`
@@ -46,7 +76,11 @@ const Title = styled('h1')`
 const TitleContent = styled('span')`
 `;
 
-const SubTitle = styled('p')`
+const SubTitle = styled('div')`
   color: #7C7C7C;
   margin: 0;
+`;
+
+const StyledAnimatedNumber = styled(AnimatedNumber)`
+  display: inline-flex;
 `;

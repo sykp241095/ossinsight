@@ -40,7 +40,8 @@ const config = {
   customFields: {
     auth0_domain: process.env.AUTH0_DOMAIN || '',
     auth0_client_id: process.env.AUTH0_CLIENT_ID || '',
-    tidbcloud_host: process.env.TIDBCLOUD_HOST || process.env.NODE_ENV === 'production' ? 'tidbcloud.com' : 'staging.tidbcloud.com',
+    tidbcloud_host: process.env.TIDBCLOUD_HOST || (process.env.NODE_ENV === 'production' ? 'tidbcloud.com' : 'staging.tidbcloud.com'),
+    ga_measure_id: process.env.GA_MEASURE_ID || 'G-KW4FDPBLLJ',
   },
 
   // Even if you don't use internalization, you can use this field to set useful
@@ -144,6 +145,26 @@ const config = {
         ]
       }
     ],
+    [
+      'docusaurus-plugin-openapi-docs',
+      {
+        id: 'openapi',
+        docsPluginId: 'classic', // e.g. "classic" or the plugin-content-docs id
+        config: {
+          public_api: { // "public" is considered the <id> that you will reference in the CLI
+            specPath: '../configs/public_api/openapi.yaml', // path or URL to the OpenAPI spec
+            baseUrl: `${API_BASE}/public`,
+            outputDir: 'docs/api', // output directory for generated *.mdx and sidebar.js files
+            sidebarOptions: {
+              groupPathsBy: 'tag', // generate a sidebar.js slice that groups operations by tag
+              categoryLinkSource: 'tag',
+              sidebarCollapsed: false
+            },
+            template: path.resolve(__dirname, '../configs/public_api/doc.template.mustache'),
+          }
+        }
+      },
+    ],
     './plugins/mui',
     process.env.ENABLE_BUNDLE_ANALYZE === 'true' ? './plugins/analyze' : undefined,
   ].filter(Boolean),
@@ -165,6 +186,7 @@ const config = {
           routeBasePath: '/docs',
           editUrl: 'https://github.com/pingcap/ossinsight/tree/main/web/',
           sidebarPath: require.resolve('./sidebars.js'),
+          docItemComponent: '@theme/ApiItem',
         },
         blog: {
           blogTitle: 'Blog',
@@ -192,7 +214,7 @@ const config = {
       }),
     ],
   ],
-
+  themes: ['docusaurus-theme-openapi-docs'],
   themeConfig:
   /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
     ({
@@ -209,16 +231,14 @@ const config = {
         disableSwitch: true,
         respectPrefersColorScheme: false,
       },
-      /*
       announcementBar: {
-        id: 'announcement-20221101',
+        id: 'announcement-20230821',
         content:
-          '<a target="_blank" href="/2022" style="font-weight:bold">🎉 Check out highlights from GitHub 2022!</a>',
-        backgroundColor: '#6F6290',
+          '<a target="_blank" href="https://next.ossinsight.io/widgets" style="font-weight:bold">✨ Spark Your GitHub Magic: Customize and Share with Your Personalized Widgets!</a>',
+        backgroundColor: '#4C33B1',
         textColor: '#ffffff',
         isCloseable: true,
       },
-      */
       docs: {
         sidebar: {
           hideable: true,
@@ -227,7 +247,7 @@ const config = {
       navbar: {
         logo: {
           alt: 'OSS Insight Logo',
-          src: 'img/logo.png',
+          src: 'img/logo.svg',
         },
         style: 'dark',
         items: [
@@ -253,6 +273,7 @@ const config = {
           },
           { to: '/blog', label: 'Blog', position: 'left' },
           { to: '/docs/api', label: 'API', position: 'left' },
+          { to: 'https://next.ossinsight.io/widgets', label: 'Widgets', position: 'left', target: '_self' },
           /* {
             type: 'dropdown',
             label: 'Workshop',
@@ -284,10 +305,10 @@ const config = {
               { label: 'About OSS Insight', to: '/docs/about' },
               {
                 label: 'About TiDB Cloud',
-                to: 'https://en.pingcap.com/tidb-cloud?utm_source=ossinsight&utm_medium=referral'
+                to: 'https://www.pingcap.com/tidb-serverless?utm_source=ossinsight&utm_medium=referral'
               },
               { label: 'How do we implement OSS Insight?', to: '/blog/why-we-choose-tidb-to-support-ossinsight' },
-              { label: 'Database Stats', to: '/stats' },
+              /* { label: 'Database Stats', to: '/stats' }, */
               { label: 'Report an Issue', to: 'https://github.com/pingcap/ossinsight/issues' },
             ]
           },
@@ -367,7 +388,7 @@ const config = {
             items: [
               {
                 label: 'TiDB Cloud',
-                href: 'https://en.pingcap.com/tidb-cloud?utm_source=ossinsight&utm_medium=referral',
+                href: 'https://www.pingcap.com/tidb-serverless?utm_source=ossinsight&utm_medium=referral',
               },
             ],
           },
@@ -383,10 +404,6 @@ const config = {
                 href: 'http://www.gharchive.org/',
               },
               {
-                label: 'GHTorrent',
-                href: 'https://ghtorrent.org/',
-              },
-              {
                 label: 'Docusaurus',
                 href: 'https://github.com/facebook/docusaurus',
               },
@@ -397,6 +414,10 @@ const config = {
               {
                 label: 'React',
                 href: 'https://github.com/facebook/react',
+              },
+              {
+                label: 'TypeScript',
+                href: 'https://www.typescriptlang.org/',
               },
             ],
           },
@@ -416,7 +437,7 @@ const config = {
                 href: 'https://github.com/pingcap/ossinsight',
               },
               {
-                html: '<br /><b>Location</b><p style="color:grey">PingCAP<br />1250 Borregas Ave, Office 131<br />Sunnyvale, CA 94089<br />USA<br />☎️  +1 650 382 9973</p>',
+                html: '<br /><b>Location</b><p style="color:grey">PingCAP<br />440 N Wolfe Rd<br /> Sunnyvale, CA 94085<br />USA<br />☎️  +1 650 382 9973</p>',
               },
             ],
           },
@@ -424,7 +445,7 @@ const config = {
         logo: {
           alt: 'TiDB Cloud Logo',
           src: '/img/tidb-cloud-logo-o.png',
-          href: 'https://en.pingcap.com/tidb-cloud/?utm_source=ossinsight&utm_medium=referral',
+          href: 'https://www.pingcap.com/tidb-serverless/?utm_source=ossinsight&utm_medium=referral',
           width: 200,
         },
         copyright: `Copyright &copy; ${new Date().getFullYear()} <a href="https://en.pingcap.com" target="_blank">PingCAP</a>. All Rights Reserved | <a href="https://en.pingcap.com/privacy-policy/" target="_blank">Privacy</a>`,

@@ -15,7 +15,7 @@ export default function ExploreGlobalAds () {
     deserializer: Boolean,
     defaultValue: false,
   });
-  const [anchorEl, setAnchorEl] = useState<VirtualElement | null>(null);
+  const [anchorEl, setAnchorEl] = useState<VirtualElement | null>(typeof window === 'undefined' ? null : document.body);
   const location = useLocation();
   const safeSetTimeout = useSafeSetTimeout();
 
@@ -45,13 +45,12 @@ export default function ExploreGlobalAds () {
     <CardContent sx={{ maxWidth: 402, mx: 'auto' }}>
       <Typography variant="body1" mb={1}>
         <StyledLink to="/explore/" onClick={handleClose}>
-          Data Explorer <StyledArrowForward fontSize="inherit" />
+        GitHub Data Explorer <StyledArrowForward fontSize="inherit" />
         </StyledLink>
-        A game-changing way to explore 5B rows of data
-        <br />
+        A game-changing way to explore <b>5B+ rows of GitHub data</b>.
         Try our <b>AI-powered</b> querying tool—no SQL required!
       </Typography>
-      <img src="/img/data-explorer-showcase.gif" width="370" height="231.5" alt="data-explorer-showcase" />
+      {open && <img src="/img/data-explorer-showcase.gif" width="370" height="231.5" alt="data-explorer-showcase" />}
     </CardContent>
   );
 

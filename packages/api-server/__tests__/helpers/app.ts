@@ -26,7 +26,7 @@ async function createApp () {
   const playgroundDatabaseURL = db.url()
       .replace('executoruser', 'webshelluser')
       .replace('executorpassword', 'webshellpassword');
-  const env: Env = {
+  const env: Partial<Env> = {
     CONFIGS_PATH: path.resolve(__dirname, '../../../../configs'),
     ADMIN_EMAIL: 'admin@testdomain.com',
     DATABASE_URL: db.url(),
@@ -34,10 +34,6 @@ async function createApp () {
     // This should be used for oauth redirect only
     API_BASE_URL: 'http://testdomain.com/',
     ENABLE_CACHE: false,
-    QUEUE_LIMIT: 10,
-    CONNECTION_LIMIT: 10,
-    GITHUB_OAUTH_CLIENT_ID: 'fake',
-    GITHUB_OAUTH_CLIENT_SECRET: 'fake',
     GITHUB_ACCESS_TOKENS: process.env.GITHUB_TOKEN ?? '',
     PLAYGROUND_DATABASE_URL: playgroundDatabaseURL,
     PLAYGROUND_DAILY_QUESTIONS_LIMIT: 30,
@@ -46,11 +42,7 @@ async function createApp () {
     EXPLORER_USER_MAX_QUESTIONS_ON_GOING: 1,
     EXPLORER_GENERATE_SQL_CACHE_TTL: 60 * 60 * 24 * 7,
     EXPLORER_QUERY_SQL_CACHE_TTL: 60 * 60 * 24,
-    JWT_SECRET: 'fake',
-    JWT_COOKIE_NAME: 'ossinsight_test_t',
-    JWT_COOKIE_DOMAIN: 'http://testdomain.com/',
-    JWT_COOKIE_SECURE: 'false',
-    JWT_COOKIE_SAME_SITE: 'false',
+    EXPLORER_OUTPUT_ANSWER_IN_STREAM: false,
     OPENAI_API_KEY: 'fake',
     AUTH0_DOMAIN: 'auth0',
     AUTH0_SECRET: 'auth0',

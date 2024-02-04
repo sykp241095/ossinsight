@@ -2,18 +2,20 @@
   "name": "ossinsight",
   "version": "0.0.0",
   "private": true,
-  "license": "MIT",
+  "license": "Apache-2.0",
   "workspaces": [
     "packages/api-server",
-    "packages/feeds-server"
+    "packages/job-server",
+    "packages/prefetch",
+    "packages/types",
+    "packages/pipeline",
+    "packages/sync-github-data"
   ],
   "scripts": {
-    "prepare": "husky install",
-    "postinstall": "cd web && npm install"
+    "prepare": "husky install"
   },
   "devDependencies": {
     "husky": "^8.0.1",
     "lint-staged": "^13.0.3"
-  },
-  "packageManager": "pnpm@7.3.0"
+  }
 }

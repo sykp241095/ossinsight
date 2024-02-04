@@ -1,6 +1,6 @@
 import {FastifyPluginAsync, FastifySchema} from 'fastify';
 import {QuestionFeedbackType} from "../../../../../plugins/services/explorer-service/types";
-import {Auth0User, parseAuth0User} from "../../../../../plugins/services/user-service/auth0";
+import {withTransaction} from "../../../../../utils/db";
 
 export const addFeedbackSchema: FastifySchema = {
   summary: 'Add feedback for answer',
@@ -85,15 +85,10 @@ const root: FastifyPluginAsync = async (app) => {
     Params: IParam
   }>('/', {
     schema: getFeedbacksSchema,
-    // @ts-ignore
     preValidation: app.authenticate
   },async (req, reply) => {
     const { questionId } = req.params;
-    const { sub, metadata } = parseAuth0User(req.user as Auth0User);
-    const userId = await app.userService.findOrCreateUserByAccount(
-      { ...metadata, sub },
-      req.headers.authorization
-    );
+    const userId = await app.userService.getUserIdOrCreate(req);
 
     const feedbacks = await app.explorerService.getUserQuestionFeedbacks(userId, questionId);
     reply.status(200).send(feedbacks);
@@ -105,39 +100,27 @@ const root: FastifyPluginAsync = async (app) => {
     Body: IBody
   }>('/', {
     schema: addFeedbackSchema,
-    // @ts-ignore
     preValidation: app.authenticate
   },async (req, reply) => {
     const { questionId } = req.params;
     const { satisfied, feedbackContent } = req.body;
-    const conn = await app.mysql.getConnection();
-    const { sub, metadata } = parseAuth0User(req.user as Auth0User);
-    const userId = await app.userService.findOrCreateUserByAccount(
-      { ...metadata, sub },
-      req.headers.authorization,
-      conn
-    );
+    const userId = await app.userService.getUserIdOrCreate(req);
 
-    try {
-      await conn.beginTransaction();
-      await app.explorerService.removeUserQuestionFeedbacks(userId, questionId, conn);
-      await app.explorerService.addQuestionFeedback({
+    // Add or replace feedback.
+    await withTransaction(app.mysql, async (conn) => {
+      await app.explorerService.removeUserQuestionFeedbacks(conn, userId, questionId);
+      await app.explorerService.addQuestionFeedback(conn, {
         questionId,
         userId,
         satisfied,
         feedbackType: satisfied ? QuestionFeedbackType.AnswerSatisfied : QuestionFeedbackType.AnswerUnsatisfied,
         feedbackContent
-      }, conn);
-      await conn.commit();
-      reply.status(200).send({
-        message: 'ok'
       });
-    } catch (err) {
-      await conn.rollback();
-      throw err;
-    } finally {
-      await conn.release();
-    }
+    });
+
+    reply.status(200).send({
+      message: 'ok'
+    });
   });
 
   // Cancel feedback.
@@ -146,16 +129,11 @@ const root: FastifyPluginAsync = async (app) => {
     Querystring: IQueryString
   }>('/', {
     schema: cancelFeedbacksSchema,
-    // @ts-ignore
     preValidation: app.authenticate
   },async (req, reply) => {
     const { questionId } = req.params;
     const { satisfied } = req.query;
-    const { sub, metadata } = parseAuth0User(req.user as Auth0User);
-    const userId = await app.userService.findOrCreateUserByAccount(
-      { ...metadata, sub },
-      req.headers.authorization,
-    );
+    const userId = await app.userService.getUserIdOrCreate(req);
 
     try {
       await app.explorerService.cancelUserQuestionFeedback(userId, questionId, satisfied);

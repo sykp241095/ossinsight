@@ -58,4 +58,6 @@ items:
   - beego/beego
   - lucacasonato/fresh
   - honojs/hono
-  - pankod/refine
+  - refinedev/refine
+  - unjs/nitro
+  - payloadcms/payload

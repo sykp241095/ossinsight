@@ -1,9 +1,14 @@
-import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { newQuestion, pollQuestion, Question, QuestionStatus } from '@site/src/api/explorer';
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { newQuestion, pollQuestion, Question, QuestionErrorType, QuestionStatus, recommendQuestion, updateQuestionTags } from '@site/src/api/explorer';
 import { useMemoizedFn } from 'ahooks';
-import { isFalsy, isFiniteNumber, isNonemptyString, notNullish } from '@site/src/utils/value';
+import { isFalsy, isFiniteNumber, isNonemptyString, nonEmptyArray, notNullish } from '@site/src/utils/value';
 import { timeout } from '@site/src/utils/promisify';
-import { useResponsiveAuth0 } from '@site/src/theme/NavbarItem/useResponsiveAuth0';
+import { useGtag } from '@site/src/utils/ga';
+import { getErrorMessage } from '@site/src/utils/error';
+import { notNone } from '@site/src/pages/explore/_components/SqlSection/utils';
+import { useIfMounted } from '@site/src/hooks/mounted';
+import { useRequireLogin } from '@site/src/context/user';
+import { parseKeywords } from '@site/src/pages/explore/_components/SqlSection/AIMessagesV3';
 
 export const enum QuestionLoadingPhase {
   /** There is no question */
@@ -21,6 +26,7 @@ export const enum QuestionLoadingPhase {
   CREATE_FAILED,
   /** Generate SQL failed, question exists */
   GENERATE_SQL_FAILED,
+  VALIDATE_SQL_FAILED,
   /** SQL is waiting for execution */
   QUEUEING,
   /** SQL is executing */
@@ -36,12 +42,21 @@ export const enum QuestionLoadingPhase {
   /** Question is ready to render but has no result */
 }
 
+export const GENERATE_SQL_NON_FINAL_PHASES = new Set([
+  QuestionLoadingPhase.NONE,
+  QuestionLoadingPhase.LOADING,
+  QuestionLoadingPhase.CREATING,
+  QuestionLoadingPhase.CREATED,
+  QuestionLoadingPhase.GENERATING_SQL,
+]);
+
 export const FINAL_PHASES = new Set([
   QuestionLoadingPhase.NONE,
   QuestionLoadingPhase.READY,
   QuestionLoadingPhase.SUMMARIZING,
   QuestionLoadingPhase.UNKNOWN_ERROR,
   QuestionLoadingPhase.GENERATE_SQL_FAILED,
+  QuestionLoadingPhase.VALIDATE_SQL_FAILED,
   QuestionLoadingPhase.VISUALIZE_FAILED,
   QuestionLoadingPhase.CREATE_FAILED,
   QuestionLoadingPhase.LOAD_FAILED,
@@ -64,6 +79,8 @@ function computePhase (question: Question, whenError: (error: unknown) => void):
     case QuestionStatus.Success:
       if (notNullish(question.chart)) {
         return QuestionLoadingPhase.READY;
+      } else if (question.sqlCanAnswer === false) {
+        return QuestionLoadingPhase.GENERATE_SQL_FAILED;
       } else {
         return QuestionLoadingPhase.VISUALIZE_FAILED;
       }
@@ -72,6 +89,17 @@ function computePhase (question: Question, whenError: (error: unknown) => void):
         whenError(question.error);
       } else {
         whenError('Empty error message');
+      }
+      switch (question.errorType) {
+        case QuestionErrorType.ANSWER_GENERATE:
+        case QuestionErrorType.ANSWER_PARSE:
+        case QuestionErrorType.SQL_CAN_NOT_ANSWER:
+          return QuestionLoadingPhase.GENERATE_SQL_FAILED;
+        case QuestionErrorType.VALIDATE_SQL:
+          return QuestionLoadingPhase.VALIDATE_SQL_FAILED;
+        case QuestionErrorType.QUERY_TIMEOUT:
+        case QuestionErrorType.QUERY_EXECUTE:
+          return QuestionLoadingPhase.EXECUTE_FAILED;
       }
       if (isFalsy(question.querySQL)) {
         return QuestionLoadingPhase.GENERATE_SQL_FAILED;
@@ -122,11 +150,18 @@ export interface QuestionManagement {
   loading: boolean;
   error: unknown;
 
+  isSqlPending: boolean;
+  isResultPending: boolean;
+
   load: (id: string) => void;
 
-  create: (title: string) => void;
+  create: (title: string, ignoreCache: boolean) => void;
 
   reset: () => void;
+
+  recommend: (value: boolean) => Promise<void>;
+
+  updateTags: (options: { ids: number[], accessToken?: string }) => Promise<void>;
 }
 
 export function useQuestionManagementValues ({ pollInterval = 2000 }: QuestionManagementOptions): QuestionManagement {
@@ -134,10 +169,15 @@ export function useQuestionManagementValues ({ pollInterval = 2000 }: QuestionMa
   const [question, setQuestion] = useState<Question>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<unknown>();
+  const waitTimeRef = useRef<number>(0);
   const idRef = useRef<string>();
+  const ifMounted = useIfMounted();
 
-  const { isLoading, user, getAccessTokenSilently, login } = useResponsiveAuth0();
+  const { gtagEvent } = useGtag();
 
+  const requireLogin = useRequireLogin();
+
+  // TODO: support cancel
   const loadInternal = useMemoizedFn(async function (id: string, clear: boolean) {
     // Prevent reload when loading same question
     if (idRef.current === id) {
@@ -149,6 +189,7 @@ export function useQuestionManagementValues ({ pollInterval = 2000 }: QuestionMa
 
     try {
       if (clear) {
+        waitTimeRef.current = performance.now();
         setError(undefined);
         setQuestion(undefined);
         setPhase(QuestionLoadingPhase.LOADING);
@@ -156,14 +197,20 @@ export function useQuestionManagementValues ({ pollInterval = 2000 }: QuestionMa
       setLoading(true);
       const result = await pollQuestion(id);
       idRef.current = result.id;
-      setPhase(computePhase(result, setError));
-      setQuestion(result);
+      ifMounted(() => {
+        setPhase(computePhase(result, setError));
+        setQuestion(result);
+      });
     } catch (e) {
-      setPhase(QuestionLoadingPhase.LOAD_FAILED);
-      setError(e);
+      ifMounted(() => {
+        setPhase(QuestionLoadingPhase.LOAD_FAILED);
+        setError(e);
+      });
       return await Promise.reject(e);
     } finally {
-      setLoading(false);
+      ifMounted(() => {
+        setLoading(false);
+      });
     }
   });
 
@@ -171,32 +218,77 @@ export function useQuestionManagementValues ({ pollInterval = 2000 }: QuestionMa
     void loadInternal(id, true);
   });
 
-  const create = useMemoizedFn((title: string) => {
-    async function createInternal (title: string) {
+  const create = useMemoizedFn((title: string, ignoreCache: boolean) => {
+    async function createInternal (title: string, ignoreCache: boolean) {
       try {
-        if (!isLoading && !user) {
-          return await login({ triggerBy: 'explorer-search' });
+        let accessToken;
+        try {
+          accessToken = await requireLogin('explorer-search');
+        } catch {
+          return;
         }
+        waitTimeRef.current = performance.now();
         setError(undefined);
         setQuestion(undefined);
         setLoading(true);
         setPhase(QuestionLoadingPhase.CREATING);
-        const accessToken = await getAccessTokenSilently();
-        const result = await newQuestion(title, { accessToken });
+
+        const result = await newQuestion({ question: title, ignoreCache }, { accessToken });
         await timeout(600);
         idRef.current = result.id;
-        setPhase(computePhase(result, setError));
-        setQuestion(result);
+        gtagEvent('create_question', {
+          questionId: result.id,
+          questionTitle: result.title,
+          questionHitCache: result.hitCache,
+          spent: (performance.now() - waitTimeRef.current) / 1000,
+        });
+        ifMounted(() => {
+          setPhase(computePhase(result, setError));
+          setQuestion(result);
+        });
       } catch (e) {
-        setPhase(QuestionLoadingPhase.CREATE_FAILED);
-        setError(e);
+        gtagEvent('create_question_failed', {
+          errorMessage: getErrorMessage(e),
+          spent: (performance.now() - waitTimeRef.current) / 1000,
+        });
+        ifMounted(() => {
+          setPhase(QuestionLoadingPhase.CREATE_FAILED);
+          setError(e);
+        });
         return await Promise.reject(e);
       } finally {
-        setLoading(false);
+        ifMounted(() => {
+          setLoading(false);
+        });
       }
     }
 
-    void createInternal(title);
+    void createInternal(title, ignoreCache);
+  });
+
+  const recommend = useMemoizedFn(async (value: boolean) => {
+    if (notNullish(question)) {
+      const id = question.id;
+      await recommendQuestion(question.id, value, { accessToken: await requireLogin() });
+      ifMounted(() => {
+        setQuestion(question => {
+          if (question?.id === id) {
+            return {
+              ...question,
+              recommended: value,
+            };
+          } else {
+            return question;
+          }
+        });
+      });
+    }
+  });
+
+  const updateTags = useMemoizedFn(async ({ ids, accessToken }: { ids: number[], accessToken?: string }) => {
+    if (notNullish(question)) {
+      await updateQuestionTags(question.id, ids, { accessToken: accessToken ?? await requireLogin() });
+    }
   });
 
   const reset = useMemoizedFn(() => {
@@ -206,6 +298,14 @@ export function useQuestionManagementValues ({ pollInterval = 2000 }: QuestionMa
     setError(undefined);
     idRef.current = undefined;
   });
+
+  const isSqlPending = useMemo(() => {
+    return GENERATE_SQL_NON_FINAL_PHASES.has(phase);
+  }, [phase]);
+
+  const isResultPending = useMemo(() => {
+    return !FINAL_PHASES.has(phase);
+  }, [phase]);
 
   useEffect(() => {
     if (isFiniteNumber(pollInterval) && pollInterval < 1000) {
@@ -232,6 +332,24 @@ export function useQuestionManagementValues ({ pollInterval = 2000 }: QuestionMa
     }
   }, [phase, loading, pollInterval]);
 
+  // send gtag events when question id changes and the question is fully ready.
+  useEffect(() => {
+    if (notNullish(question) && FINAL_PHASES.has(phase) && phase !== QuestionLoadingPhase.SUMMARIZING) {
+      gtagEvent('explore_question', {
+        questionId: question.id,
+        questionTitle: question.title,
+        questionHitCache: question.hitCache,
+        questionRecommended: question.recommended,
+        questionStatus: question.status,
+        questionNotClear: isNone(question.notClear),
+        questionHasAssumption: !isNone(question.assumption),
+        questionSqlCanAnswer: question.sqlCanAnswer,
+        // Seconds used from load start to ready (or error).
+        spent: (performance.now() - waitTimeRef.current) / 1000,
+      });
+    }
+  }, [question?.id, FINAL_PHASES.has(phase) && phase !== QuestionLoadingPhase.SUMMARIZING]);
+
   return {
     phase,
     question,
@@ -240,6 +358,10 @@ export function useQuestionManagementValues ({ pollInterval = 2000 }: QuestionMa
     load,
     create,
     reset,
+    recommend,
+    updateTags,
+    isSqlPending,
+    isResultPending,
   };
 }
 
@@ -248,13 +370,63 @@ export const QuestionManagementContext = createContext<QuestionManagement>({
   question: undefined,
   loading: false,
   error: undefined,
+  isSqlPending: true,
+  isResultPending: true,
   load () {},
   create () {},
   reset () {},
+  recommend: async () => {},
+  updateTags: async () => {},
 });
 
 QuestionManagementContext.displayName = 'QuestionManagementContext';
 
 export default function useQuestionManagement () {
   return useContext(QuestionManagementContext);
+}
+
+/**
+ * Returns if value is string and string is not 'None' or empty
+ * @param string
+ */
+function isNone (string?: string) {
+  if (isNonemptyString(string)) {
+    return ['none', 'n/a'].includes(string.toLowerCase());
+  }
+  return true;
+}
+
+export function isEmptyResult (question: Question) {
+  if (question.status === QuestionStatus.Success || question.status === QuestionStatus.Summarizing) {
+    return (question.result?.rows.length ?? NaN) === 0;
+  }
+  return false;
+}
+
+export function hasAIPrompts (question: Question) {
+  if (question.status === QuestionStatus.AnswerGenerating) {
+    let hasPrompts = false;
+    const answer = question.answer;
+    if (notNullish(answer)) {
+      hasPrompts ||= (
+        nonEmptyArray(parseKeywords(answer.keywords)) ||
+        nonEmptyArray(parseKeywords(answer.links)) ||
+        nonEmptyArray(answer.subQuestions)
+      );
+    }
+    // RQ are generate first
+    hasPrompts ||= (
+      notNone(question.revisedTitle) ||
+      notNone(question.assumption) ||
+      notNone(question.combinedTitle)
+    );
+    return hasPrompts;
+  } else {
+    // For previous questions without CQ
+    return (
+      notNone(question.revisedTitle) ||
+      notNone(question.combinedTitle) ||
+      notNone(question.assumption)
+    );
+  }
 }

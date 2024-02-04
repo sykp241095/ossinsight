@@ -1,9 +1,15 @@
+import {resolve} from "path";
+
 export const JobServerEnvSchema = {
   type: 'object',
   required: [
     'DATABASE_URL'
   ],
   properties: {
+    CONFIGS_PATH: {
+      type: 'string',
+      default: resolve(__dirname, '..', '..', '..', 'configs')
+    },
     DATABASE_URL: {
       type: 'string',
     },
@@ -16,6 +22,9 @@ export const JobServerEnvSchema = {
       default: 'http://127.0.0.1:30002/api',
     },
     PLAYGROUND_DATABASE_URL: {
+      type: 'string',
+    },
+    PLAYGROUND_SHADOW_DATABASE_URL: {
       type: 'string',
     },
     EXPLORER_HIGH_QUEUE_CONCURRENT: {

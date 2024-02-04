@@ -1,13 +1,12 @@
 {
-  "cacheHours": -1,
+  "cacheHours": 25,
   "refreshCron": "@collection-daily",
   "refreshQueue": "CONCURRENT",
   "params": [
     {
       "name": "collectionId",
-      "type": "collection",
+      "replaces": "10001",
       "enums": "collectionIds",
-      "replaces": "41986369, 16563587, 105944401",
       "pattern": "^[1-9]\\d*$"
     }
   ]
