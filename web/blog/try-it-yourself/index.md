@@ -16,8 +16,8 @@ In this tutorial, we will provide you with a piece of sample data of all GitHub 
 
 ## Sign up for a TiDB Cloud account (Free)
 
-1. Click [here](https://tidbcloud.com/free-trial?utm_source=ossinsight&utm_medium=referral) to sign up for a TiDB Cloud account free of charge. 
-2. [Log in](https://tidbcloud.com/?utm_source=ossinsight&utm_medium=referral) to your account.
+1. Click [here](https://tidbcloud.com/free-trial/?utm_source=ossinsight&utm_medium=community) to sign up for a TiDB Cloud account free of charge. 
+2. [Log in](https://tidbcloud.com/?utm_source=ossinsight&utm_medium=community) to your account.
 
 <!--truncate-->
 
@@ -86,7 +86,7 @@ TiDB Cloud provides a web shell to connect the database online.
 ![](./web-shell.png)
 
 
-### Set column storage replica: TiFlash (Optional but coult make SQL faster!) 
+### Set column storage replica: TiFlash (Optional but could make SQL faster!) 
 
 [TiFlash](https://docs.pingcap.com/tidb/stable/tiflash-overview?utm_source=ossinsight&utm_medium=referral) is the key component that makes TiDB / TiDB Cloud an HTAP database and capable of dealing with OLTP and OLAP workloads at the same time. 
 

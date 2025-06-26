@@ -28,7 +28,7 @@
 
 ## Introduction
 
-OSS Insight is a powerful tool that provides comprehensive, valuable, and trending insights into the open source world by analyzing 5+ billion rows of GitHub events data.
+OSS Insight is a powerful tool that provides comprehensive, valuable, and trending insights into the open source world by analyzing 8+ billion rows of GitHub events data.
 
 OSS Insight's <a href="https://ossinsight.io/explore/">Data Explorer</a> provides a new way to explore GitHub data. Simply ask your question in natural language and Data Explorer will generate SQL, query the data, and present the results visually.
 
@@ -56,7 +56,7 @@ For more charming widgets, please [Check it out 👉](https://next.ossinsight.io
   
 Data Explorer provides a new way to discover trends and insights into 5+ billion rows of GitHub data.
 
-Simply ask your question in natural language and Data Explorer will generate SQL, query the data, and present the results visually. It's built with <a href="https://tidbcloud.com/channel?utm_source=ossinsight&utm_medium=referral&utm_campaign=chat2query_202301&utm_content=github_readme">Chat2Query</a>, a GPT-powered SQL generator in TiDB Cloud. 
+Simply ask your question in natural language and Data Explorer will generate SQL, query the data, and present the results visually. It's built with <a href="https://tidbcloud.com/channel/?utm_source=ossinsight&utm_medium=community&utm_campaign=chat2query_202301&utm_content=github_readme">Chat2Query</a>, a GPT-powered SQL generator in TiDB Cloud. 
 
 Examples:
 
@@ -89,7 +89,7 @@ Examples:
 
   **Welcome to add collections**
 
-  👏 We welcome your contributions here! You can add a collection on our website by submitting PRs. Please create a `.yml` file under [the collections file path]( https://github.com/pingcap/ossinsight/tree/main/etl/meta/collections).
+  👏 We welcome your contributions here! You can add a collection on our website by submitting PRs. Please create a `.yml` file under [the collections file path]( https://github.com/pingcap/ossinsight/tree/main/configs/collections).
 
   [Here](https://github.com/pingcap/ossinsight/blob/main/CONTRIBUTING.md#add-a-collection) is a file template that describes what you need to include. We look forward to your PRs！
 
@@ -137,6 +137,7 @@ Insights about the **code update frequency & degree of popularity** from reposit
 </div>
 
 **Examples**:
+
 * [React](https://ossinsight.io/analyze/facebook/react)
 * [TiDB](https://ossinsight.io/analyze/pingcap/tidb)
 * [web3.js](https://ossinsight.io/analyze/web3/web3.js)
@@ -170,6 +171,7 @@ We have a few channels for contact:
 
 * [GitHub Discussions](https://github.com/pingcap/ossinsight/discussions): You can ask a question or discuss here.
 * [@OSS Insight](https://twitter.com/OSSInsight) on Twitter
+* [TiDB Community](https://ask.pingcap.com/): This is the place to discuss anything related to TiDB.
 * [mail](mailto:ossinsight@pingcap.com):If you want to analyze more, please [contact us](mailto:ossinsight@pingcap.com) ✉️
 
 ## Development
